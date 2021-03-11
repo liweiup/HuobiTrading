@@ -38,7 +38,7 @@ public class ScheduledService {
         return redisService.getSetMembers(CacheService.SYMBLO_FLAG);
     }
 
-    @Scheduled(cron = "*/2 * * * * ?")  //每2秒执行一次
+//    @Scheduled(cron = "*/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() throws Exception {
         for (String symbol : getSymbol()) {
             Thread.sleep(1000);

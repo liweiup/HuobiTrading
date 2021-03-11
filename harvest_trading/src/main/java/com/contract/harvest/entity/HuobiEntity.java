@@ -237,15 +237,17 @@ public class HuobiEntity {
     /**
      * 获取历史成交记录
      * symbol	true	string	品种代码		支持大小写,"BTC","ETH"...
+     * type 1:所有订单,2:结束状态的订单
      * trade_type	true	int	交易类型		0:全部,1:买入开多,2: 卖出开空,3: 买入平空,4: 卖出平多,5: 卖出强平,6: 买入强平
      * create_date	true	int	日期		可随意输入正整数，如果参数超过90则默认查询90天的数据
      * contract_code	false	string	合约code
      * page_index	false	int	页码，不填默认第1页	1
      * page_size	false	int	不填默认20，不得多于50	20	[1-50]
      */
-    public String contractMatchresultsRequest(String symbol, int tradeType, int createDate) {
+    public String contractMatchresultsRequest(String symbol,int type,int tradeType, int createDate) {
         ContractMatchresultsRequest request = ContractMatchresultsRequest.builder()
                 .symbol(symbol)
+                .type(type)
                 .tradeType(tradeType)
                 .createDate(createDate)
                 .build();

@@ -19,6 +19,7 @@ import com.huobi.api.exception.ApiException;
 import com.huobi.api.request.trade.ContractOrderRequest;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
 import com.huobi.api.response.market.ContractContractCodeResponse;
+import com.huobi.api.response.trade.ContractMatchresultsResponse;
 import com.huobi.api.response.trade.ContractOrderInfoResponse;
 import com.huobi.api.response.trade.ContractOrderResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -270,21 +271,21 @@ public class DeliveryDataService implements DataServiceInter {
      */
     public void splitOrder(String symbol) {
         //取到前一天所有的成交订单
-        String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,0,1);
-        System.out.println(contractMatchresultsStr);
-//        String key = CacheService.ORDER_DEAL_CLIENTID + symbol;
-//        Set<String> dealClientIdSet =  redisService.getSetMembers(key);
-//        if (null == dealClientIdSet) {
-//            return;
-//        }
-//        for (String clientId : dealClientIdSet) {
-//            //获取订单信息
-//            String orderInfo = redisService.hashGet(CacheService.ORDER_INFO + symbol,clientId);
-//            ContractOrderInfoResponse.DataBean orderInfoResponse = JSON.parseObject(orderInfo,ContractOrderInfoResponse.DataBean.class);
-//            System.out.println(orderInfoResponse);
-//        }
-
-
+        String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,1,0,10);
+        ContractMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,ContractMatchresultsResponse.class);
+        List<ContractMatchresultsResponse.DataBean.TradesBean> historyData = contractMatchresultsResponse.getData().getTrades();
+        String lossKey = CacheService.ORDER_LOSS + symbol;
+        String winKey = CacheService.ORDER_WIN + symbol;
+        for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
+            //如果是止损的订单
+            if (historyRow.getRealProfit().doubleValue() < 0) {
+                redisService.hashSet(lossKey,historyRow.getOrderIdStr().toString(),JSON.toJSONString(historyRow));
+                continue;
+            }
+            //如果是止盈的订单
+            if (historyRow.getRealProfit().doubleValue() > 0) {
+                redisService.hashSet(winKey,historyRow.getOrderIdStr().toString(),JSON.toJSONString(historyRow));
+            }
+        }
     }
-
 }

@@ -7,9 +7,8 @@
   <version>0.0.1-SNAPSHOT</version>  
   <packaging>pom</packaging>  
   <modules> 
-    <module>harvest</module>
     <module>harvest_data</module>
-    <module>harvest_tradding</module>
+    <module>harvest_trading</module>
   </modules>  
   <properties> 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
