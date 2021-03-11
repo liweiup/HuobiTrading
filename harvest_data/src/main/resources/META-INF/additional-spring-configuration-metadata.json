@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "name": "spring.environment",
+      "type": "java.lang.String",
+      "description": "Description for spring.environment."
+    },
+    {
+      "name": "logging.appname",
+      "type": "java.lang.String",
+      "description": "Description for logging.appname."
+    }
+  ] }

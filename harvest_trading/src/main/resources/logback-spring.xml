@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <!-- 日志名称 -->
+    <property name="LOG_NAME" value="catalina"/>
+    <springProperty name="appName" source="spring.application.name" scope="context"/>
+    <springProperty name="envTag" source="spring.profiles.active" scope="context"/>
+    <springProperty name="logPath" source="logging.file.path" scope="context"/>
+    <property name="LOG_FILE" value="${logPath}"/>
+    <!-- 控制台格式化输出 -->
+    <property name="CONSOLE_PATTERN" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} [${appName:-},%X{X-B3-TraceId:-},%X{X-B3-SpanId:-},%X{X-Span-Export:-}] %clr([%thread]){magenta} %clr(%level) %clr(%logger{50}){cyan} - %msg%n"/>
+    <!-- 文件格式化输出 -->
+    <property name="FILE_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [${appName:-},%X{X-B3-TraceId:-},%X{X-B3-SpanId:-},%X{X-Span-Export:-}] [%thread] %level %logger{50} - %msg%n"/>
+
+    <!-- 控制台输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 按照每天生成日志文件 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--        <file>${LOG_FILE}/${appName}.log</file>-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 日志文件输出的文件名 -->
+            <FileNamePattern>${LOG_FILE}/${appName}.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
+            <!-- 日志文件保留天数 -->
+            <MaxHistory>7</MaxHistory>
+            <!-- 日志文件大小 -->
+            <MaxFileSize>100MB</MaxFileSize>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 日志输出级别 -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

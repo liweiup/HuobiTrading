@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: harvest
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+  redis:
+    host: 10.7.178.38
+    port: 6020
+    database: 1
+    password: iphone5C,.
+    timeout: 10000
+    lettuce:
+      pool:
+        max-idle: -1 # 连接池中的最大空闲连接
+        max-wait: -1 # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-active: 50 # 连接池最大连接数（使用负值表示没有限制）
+        min-idle: 0 # 连接池中的最小空闲连接
+
+  mail:
+    host: smtp.qq.com
+    protocol: smtp
+    username: liwei.job@foxmail.com
+    password: urpoikarjrofbaej
+    properties:
+      smtp:
+        auth: false
+        starttls:
+          enable: false
+          required: false
+      mail:
+        smtp:
+          ssl:
+            enable: true
+logging:
+  file:
+    path: /usr/local/var/www/java_log/
+  config: classpath:logback-spring.xml
+  level:
+    root: error
+    org:
+      springframework: error
+    com:
+      contract:
+        harvest: info
+huobi:
+  api_key: 7yngd7gh5g-fe438759-92ede52a-dbde8
+  secret_key: 3a1923ae-9adef4eb-5bc9db68-d1fbe
+#
+#  api_key: bgbfh5tv3f-d7c5bda4-9309c2a4-cd5be
+#  secret_key: 6e53c558-49706cc2-da42cc01-7809b
