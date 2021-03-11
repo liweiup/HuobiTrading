@@ -70,6 +70,7 @@ public class jisuan {
         int q=0,w=0,j=100;
         while(i<=num){
             q=w+j;
+
             j=w;
             w=q;
             i++;
