@@ -60,8 +60,10 @@ public class FormatParam<T>  {
     public static String stampToDate(long timestamp){
         String res;
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = new Date(timestamp*1000);
-        res = simpleDateFormat.format(date);
+        if (String.valueOf(timestamp).length() != 13) {
+            Date date = new Date(timestamp*1000);
+        }
+        res = simpleDateFormat.format(timestamp);
         return res;
     }
     /**

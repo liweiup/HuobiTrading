@@ -66,4 +66,16 @@ public interface DataServiceInter {
      */
     void setContractPositionInfo(String symbol) throws ApiException,NullPointerException;
 
+    /**
+     * 将订单拆分成盈利订单 和亏损订单
+     * @param symbol String
+     */
+    void contractLossWinOrder(String symbol) throws ApiException,NullPointerException;
+
+    /**
+     * 获取最大可开仓张数
+     * @param symbol String
+     * @return int
+     */
+    int getMaxOpenVolume(String symbol) throws NullPointerException;
 }

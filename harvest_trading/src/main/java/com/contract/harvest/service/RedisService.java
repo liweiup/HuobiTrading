@@ -5,10 +5,7 @@ import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -120,6 +117,13 @@ public class RedisService {
     }
 
     /**
+     * hash exists
+     */
+    public Boolean hashExists(String key,String key1) {
+        return hashOperations.hasKey(key,key1);
+    }
+
+    /**
      * hash get
      */
     public String hashGet(String key,String key1) {
@@ -131,7 +135,12 @@ public class RedisService {
         }
         return String.valueOf(value);
     }
-
+    /**
+     * hash 迭代
+     */
+    public Cursor<Map.Entry<String, String>> hashScan(String key,long count) {
+        return hashOperations.scan(key,ScanOptions.scanOptions().count(count).build());
+    }
     /**
      * 订阅通知
      * @param channelFlag 频道

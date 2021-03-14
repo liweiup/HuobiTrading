@@ -21,12 +21,16 @@ public class CacheService {
     public static final String WAIT_ORDER_QUEUE = DELIVERY_CONTRACT+"ORDER_WAIT:";
     //订单成交信息
     public static final String ORDER_INFO = DELIVERY_CONTRACT+"ORDER_CONTRACT_INFO:";
-    //已经成交的订单id队列key
+    //已经成交的订单(客户端id)
     public static final String ORDER_DEAL_CLIENTID = DELIVERY_CONTRACT + "ORDER_DEAL_CID:";
+    //成交的订单(orderid)
+    public static final String ORDER_DEAL_OID = DELIVERY_CONTRACT + "ORDER_DEAL_OID:";
     //亏损订单
     public static final String ORDER_LOSS = DELIVERY_CONTRACT + "ORDER_LOSS:";
     //盈利订单
     public static final String ORDER_WIN = DELIVERY_CONTRACT + "ORDER_WIN:";
+    //开仓张数
+    public static final String OPEN_VOLUME = DELIVERY_CONTRACT + "OPEN_VOLUME:";
     //持仓信息
     public static final String SPACE_INFO = DELIVERY_CONTRACT + "SPACE_INFO";
     //kline数据

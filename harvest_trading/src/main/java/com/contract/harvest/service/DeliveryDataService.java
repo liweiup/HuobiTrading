@@ -269,23 +269,108 @@ public class DeliveryDataService implements DataServiceInter {
     /**
      * 将订单拆分成盈利订单 和亏损订单
      */
-    public void splitOrder(String symbol) {
-        //取到前一天所有的成交订单
+    @Override
+    public void contractLossWinOrder(String symbol) {
+        //取到所有的成交订单
         String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,1,0,10);
         ContractMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,ContractMatchresultsResponse.class);
         List<ContractMatchresultsResponse.DataBean.TradesBean> historyData = contractMatchresultsResponse.getData().getTrades();
-        String lossKey = CacheService.ORDER_LOSS + symbol;
-        String winKey = CacheService.ORDER_WIN + symbol;
+        String openVolumeKey = CacheService.OPEN_VOLUME,
+                orderDealOidKey = CacheService.ORDER_DEAL_OID + symbol,
+                lossKey = CacheService.ORDER_LOSS + symbol,
+                winKey = CacheService.ORDER_WIN + symbol;
+        int winVolume = 0,lossVolume = 0;
+        //最新的订单是否止损了
+        boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
+                onlyNewestLossFlag = true,
+                onlyNewestWinFlag = true;
         for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
-            //如果是止损的订单
-            if (historyRow.getRealProfit().doubleValue() < 0) {
-                redisService.hashSet(lossKey,historyRow.getOrderIdStr().toString(),JSON.toJSONString(historyRow));
-                continue;
+            //订单id
+            String orderIdStr = historyRow.getOrderIdStr().toString();
+            //成交张数
+            int tradeVolume = historyRow.getTradeVolume().intValue();
+            //真实收益
+            double realProfit = historyRow.getRealProfit().doubleValue();
+            //开仓或平仓
+            String offset = historyRow.getOffset();
+            //订单信息json
+            String historyRowJson = JSON.toJSONString(historyRow);
+            //如果是平仓单
+            if ("close".equals(offset)) {
+                //hash值存在就跳过
+                if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr)) {
+                    continue;
+                }
+                //如果是止损的订单
+                if (realProfit < 0) {
+                    //计算止损的张数
+                    if (lossFlag && onlyNewestLossFlag) {
+                        lossVolume += tradeVolume;
+                    }
+                    onlyNewestWinFlag = false;
+                    //把止损的订单放入队列
+                    redisService.hashSet(lossKey,orderIdStr,historyRowJson);
+                    continue;
+                }
+                //如果是止盈的订单
+                if (realProfit > 0) {
+                    //计算止盈的张数
+                    if (!lossFlag && onlyNewestWinFlag) {
+                        winVolume += tradeVolume;
+                    }
+                    onlyNewestLossFlag = false;
+                    //把止盈的订单放入队列
+                    redisService.hashSet(winKey,orderIdStr,historyRowJson);
+                }
             }
-            //如果是止盈的订单
-            if (historyRow.getRealProfit().doubleValue() > 0) {
-                redisService.hashSet(winKey,historyRow.getOrderIdStr().toString(),JSON.toJSONString(historyRow));
+            //如果是开仓单
+            if ("open".equals(offset)) {
+                if (redisService.hashExists(orderDealOidKey,orderIdStr)) {
+                    continue;
+                }
+                redisService.hashSet(orderDealOidKey,orderIdStr,historyRowJson);
             }
         }
+        //获取openVolume的长度
+        Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
+        String logStr = "";
+        //如果止损了
+        if (lossFlag && lossVolume > 0) {
+            //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
+            if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
+                redisService.lpush(openVolumeKey + symbol,String.valueOf(lossVolume));
+                logStr = "止损后倍投，止损张数：" + lossVolume;
+                log.info(logStr);
+            } else {
+                //修剪列表 只留2个元素
+                redisService.listTrim(openVolumeKey + symbol,-2,-1);
+                logStr = "最大止损回到开始的地方，止损张数：" + lossVolume;
+                log.info(logStr);
+            }
+            mailService.sendMail("订单止损拆分",logStr,"");
+        } else if(winVolume > 0){
+
+            //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
+            int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
+            for (int i = 0;i < backNum; i++) {
+                redisService.leftPop(openVolumeKey + symbol);
+            }
+            logStr = "盈利后撤步数" + backNum;
+            log.info(logStr);
+            mailService.sendMail("订单止盈拆分",logStr,"");
+        }
+    }
+
+    /**
+     * 获取最大可开仓张数
+     * @param symbol String
+     * @return int
+     */
+    @Override
+    public int getMaxOpenVolume(String symbol) {
+        //获取最新的开仓张数
+        String firstVolume = redisService.getListByIndex(CacheService.OPEN_VOLUME + symbol,Long.parseLong("0"));
+        String secondVolume = redisService.getListByIndex(CacheService.OPEN_VOLUME + symbol,Long.parseLong("1"));
+        return Integer.parseInt(firstVolume) + Integer.parseInt(secondVolume);
     }
 }

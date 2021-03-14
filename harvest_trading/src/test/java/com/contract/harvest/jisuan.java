@@ -70,14 +70,13 @@ public class jisuan {
         int q=0,w=0,j=100;
         while(i<=num){
             q=w+j;
-
             j=w;
             w=q;
             i++;
         }
         return q;
     }
-
+    //50，80，130，210
     private static int count_num = 1;
     public static void bei_tou(int n,double stop_percent,double allPrice) {
         //总共40000，一张合约价值70， 第一次开仓n张, 第二次开仓2n张。 损失x平仓，共可以开仓多少次？设总共可以开仓y次。

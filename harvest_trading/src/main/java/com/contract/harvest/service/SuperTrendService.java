@@ -30,7 +30,7 @@ public class SuperTrendService {
     @Resource RedisService redisService;
     @Resource CacheService cacheService;
     //止损点
-    private final static double STOP_PERCENT = 0.03;
+    private final static double STOP_PERCENT = 0.06;
     //止盈点
     private final static double LIMIT_PERCENT = 0.03;
 
@@ -58,19 +58,19 @@ public class SuperTrendService {
         if (tradingFlag) {
             log.info("tradingFlag---"+lastDateId+"---"+secondTimestamp);
         }
-        //两个时间相差15秒之内 (k线结束的后60秒之内交易)
-        boolean klineTimeFlag =  Math.abs(secondTimestamp - lastKlineId) < 60;
+        //k线结束的后60秒之内交易
+        boolean klineTimeFlag =  Math.abs(secondTimestamp - lastKlineId) < 80;
         if (klineTimeFlag) {
             log.info("klineTimeFlag"+klineTimeFlag);
         }
-        //持仓量
+        //当前持仓量
         List<ContractPositionInfoResponse.DataBean> contractPositionInfo = deliveryDataService.getContractPositionInfo(symbol, PubConst.DEFAULT_CS,"");
-        int volume = 0;
-        if (contractPositionInfo != null && contractPositionInfo.size() > 0) {
-            ContractPositionInfoResponse.DataBean positionInfo = contractPositionInfo.get(0);
-            volume = positionInfo.getVolume().intValue();
-        }
-        boolean volumeFlag = volume < PubConst.LIMIT_VOLUME;
+        int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
+        //最大持仓
+        int maxVolume = deliveryDataService.getMaxOpenVolume(symbol);
+        //可开仓量
+        int openVolume = maxVolume - volume;
+        boolean volumeFlag = volume < maxVolume;
         //队列是否有订单等待处理
         Long queLen = redisService.getListLen(CacheService.WAIT_ORDER_QUEUE + symbol);
         if (queLen > 0) {
@@ -82,7 +82,7 @@ public class SuperTrendService {
         if (tradingFlag && klineTimeFlag && volumeFlag) {
             log.info("生成订单...............");
             //生成订单
-            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, DirectionEnum.BUY,PubConst.VOLUME,STOP_PERCENT,LIMIT_PERCENT);
+            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,STOP_PERCENT,LIMIT_PERCENT);
             redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
             redisService.convertAndSend("order_queue","hadleQueueOrder:" + symbol);
@@ -114,24 +114,5 @@ public class SuperTrendService {
         redisService.addSet(CacheService.ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
         //刷新仓位
         deliveryDataService.setContractPositionInfo(symbol);
-    }
-    //获取开仓张数
-    public static int getOpenVolume(int time,int volume) {
-        int i=1;
-        int q=0,w=0,j=volume;
-        double price = 6000;
-        while(i <= time){
-            q=w+j;
-            price = price - (q * 65 * 0.03);
-            System.out.println("张数："+q+"  剩余钱：" + price + " 减少金额"+(q * 65 * 0.03));
-            j=w;
-            w=q;
-            i++;
-        }
-        return q;
-    }
-
-    public static void main(String[] args) {
-        System.out.println(getOpenVolume(20,3));
     }
 }

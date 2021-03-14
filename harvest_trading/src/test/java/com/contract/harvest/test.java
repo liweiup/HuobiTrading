@@ -55,7 +55,8 @@ public class test {
 //            deliveryDataService.getContractPositionInfo("BSV");
 //        mailService.sendMail("成功下单-成交量","订单信息:","");
 //        System.out.println(huobiEntity.getContractPositionInfo("BSV"));
-        deliveryDataService.splitOrder("BSV");
+//        scheduledService.contractLossWinOrder();
+        redisService.hashScan("HB:DELIVERY:CONTRACT:ORDER_LOSS:BSV",1);
     }
 
     @Test

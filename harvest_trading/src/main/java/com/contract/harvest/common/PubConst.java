@@ -37,8 +37,6 @@ public class PubConst {
     public static final String ORDER_PRICE_TYPE = "post_only";
     //止盈｜损下单类型
     public static final String ORDER_STOPLIMIT_TYPE = "optimal_10";
-    //最大持仓量
-    public static final int LIMIT_VOLUME = 15;
     //币本位合约类型
     public static final Map<String,String> CONTRACT_TYPE = new HashMap<String,String>(){
         {
@@ -48,5 +46,6 @@ public class PubConst {
             put(CW_FLAG,"this_week");
         }
     };
-
+    //最大倍投次数
+    public static final int MAX_OPEN_NUM = 5;
 }

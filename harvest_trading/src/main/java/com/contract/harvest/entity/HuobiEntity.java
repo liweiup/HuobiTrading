@@ -250,6 +250,7 @@ public class HuobiEntity {
                 .type(type)
                 .tradeType(tradeType)
                 .createDate(createDate)
+                .pageSize(50)
                 .build();
         ContractMatchresultsResponse result =
                 tradeApi.contractMatchresultsRequest(request);
