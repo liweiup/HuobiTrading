@@ -7,6 +7,7 @@ import com.contract.harvest.common.Topic;
 import com.contract.harvest.entity.HuobiEntity;
 import com.contract.harvest.tools.Arith;
 import com.huobi.api.exception.ApiException;
+import com.huobi.api.response.account.ContractPositionInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,7 +39,7 @@ public class ScheduledService {
         return redisService.getSetMembers(CacheService.SYMBLO_FLAG);
     }
 
-//    @Scheduled(cron = "*/2 * * * * ?")  //每2秒执行一次
+    @Scheduled(cron = "*/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() throws Exception {
         for (String symbol : getSymbol()) {
             Thread.sleep(1000);
@@ -71,6 +72,25 @@ public class ScheduledService {
         try {
             for (String symbol : getSymbol()) {
                 deliveryDataService.setContractPositionInfo(symbol);
+            }
+        } catch (ApiException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    //拆分订单 15分钟一次
+    @Scheduled(cron = "* */15 * * * ?")  //每15分钟执行一次
+    public void contractLossWinOrder() {
+        try {
+            for (String symbol : getSymbol()) {
+                //持仓量
+                List<ContractPositionInfoResponse.DataBean> contractPositionInfo = deliveryDataService.getContractPositionInfo(symbol, PubConst.DEFAULT_CS,"");
+                int takeVolume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
+                //没有持仓的情况下再进行订单拆分
+                if (takeVolume != 0) {
+                    continue;
+                }
+                deliveryDataService.contractLossWinOrder(symbol);
             }
         } catch (ApiException e) {
             log.error(e.getMessage());

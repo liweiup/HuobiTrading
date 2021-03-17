@@ -58,8 +58,9 @@ public class SuperTrendService {
         if (tradingFlag) {
             log.info("tradingFlag---"+lastDateId+"---"+secondTimestamp);
         }
-        //k线结束的后60秒之内交易
-        boolean klineTimeFlag =  Math.abs(secondTimestamp - lastKlineId) < 80;
+        //k线结束的前后30秒之内交易
+        long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
+        boolean klineTimeFlag = flagTimeNum > 30 && flagTimeNum < 90;
         if (klineTimeFlag) {
             log.info("klineTimeFlag"+klineTimeFlag);
         }
