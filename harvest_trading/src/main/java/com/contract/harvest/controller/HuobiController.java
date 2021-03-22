@@ -28,7 +28,7 @@ public class HuobiController {
             paramType = "query",
             defaultValue = "HB:DELIVERY:CONTRACT:ORDER_DEAL_OID:BSV,HB:DELIVERY:CONTRACT:ORDER_LOSS:BSV,HB:DELIVERY:CONTRACT:ORDER_WIN:BSV",
             required = true)
-    public Object getContractList(String[] keys) {
+    public Object getContractList(@RequestParam String[] keys) {
         return contractInfo.getContractList(keys);
     }
 
@@ -41,7 +41,7 @@ public class HuobiController {
             paramType = "query",
             defaultValue = "BSV,BTC",
             required = true)
-    public Object getSpaceInfo(String[] keys) {
+    public Object getSpaceInfo(@RequestParam String[] keys) {
         return contractInfo.getSpaceInfo(keys);
     }
 

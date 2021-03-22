@@ -1,11 +1,8 @@
 package com.contract.harvest.service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.common.Topic;
 import com.contract.harvest.entity.HuobiEntity;
-import com.contract.harvest.tools.Arith;
 import com.huobi.api.exception.ApiException;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -39,10 +36,9 @@ public class ScheduledService {
         return redisService.getSetMembers(CacheService.SYMBLO_FLAG);
     }
 
-    @Scheduled(cron = "*/2 * * * * ?")  //每2秒执行一次
+    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() throws Exception {
         for (String symbol : getSymbol()) {
-            Thread.sleep(1000);
             Map<String,String> params = new HashMap<>();
             params.put("symbol",symbol);
             taskService.execInvokeBi(params);
@@ -52,7 +48,7 @@ public class ScheduledService {
     /**
      * 存放最近的kline数据
      */
-    @Scheduled(cron = "* 0/2 * * * ?")  //每4分钟执行一次
+    @Scheduled(cron = "0 0/2 * * * ?")  //每4分钟执行一次
     public void indexCalculation() {
         try {
             for (String symbol : getSymbol()) {
@@ -63,23 +59,23 @@ public class ScheduledService {
     //            redisService.hashSet(CacheKey.HUOBI_KLINE,symbol + PubConst.SWAP_USDT + Topic.PERIOD[PubConst.TOPIC_INDEX],swapStrData);
             }
         } catch (ApiException e) {
-            log.error(e.getMessage());
+            log.error("存放最近的kline数据"+e.getMessage());
         }
     }
     //刷新仓位
-    @Scheduled(cron = "* */10 * * * ?")  //每10分钟执行一次
+    @Scheduled(cron = "0 0/10 * * * ?")  //每10分钟执行一次
     public void refushPosition() {
         try {
             for (String symbol : getSymbol()) {
                 deliveryDataService.setContractPositionInfo(symbol);
             }
         } catch (ApiException e) {
-            log.error(e.getMessage());
+            log.error("刷新仓位"+e.getMessage());
         }
     }
 
     //拆分订单 15分钟一次
-    @Scheduled(cron = "* */15 * * * ?")  //每15分钟执行一次
+    @Scheduled(cron = "0 0/15 * * * ?")  //每15分钟执行一次
     public void contractLossWinOrder() {
         try {
             for (String symbol : getSymbol()) {
@@ -93,7 +89,7 @@ public class ScheduledService {
                 deliveryDataService.contractLossWinOrder(symbol);
             }
         } catch (ApiException e) {
-            log.error(e.getMessage());
+            log.error("拆分订单"+e.getMessage());
         }
     }
 }

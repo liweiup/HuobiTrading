@@ -1,7 +1,6 @@
 package com.contract.harvest.view;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.contract.harvest.service.CacheService;
 import com.contract.harvest.service.RedisService;
@@ -27,9 +26,7 @@ public class ContractInfo {
         for (String key : orderKeyArr) {
             Cursor<Map.Entry<String, String>> cursor = redisService.hashScan(key,count);
             List<ContractMatchresultsResponse.DataBean.TradesBean> rList = new ArrayList<>();
-            cursor.forEachRemaining(v -> {
-                rList.add(JSON.parseObject(v.getValue(),ContractMatchresultsResponse.DataBean.TradesBean.class));
-            });
+            cursor.forEachRemaining(v -> rList.add(JSON.parseObject(v.getValue(),ContractMatchresultsResponse.DataBean.TradesBean.class)));
             contractList.add(rList);
         }
         return contractList;

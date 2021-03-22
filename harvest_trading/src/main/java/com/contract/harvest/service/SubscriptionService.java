@@ -23,12 +23,5 @@ public class SubscriptionService {
             System.out.println(Arrays.toString(strArr));
             superTrendService.hadleQueueOrder(strArr[1]);
         }
-//        switch (message) {
-//            case "ChaseStrategy-hadleQueueOrder":
-//                chaseStrategy.hadleQueueOrder();
-//                break;
-//            default:
-//                break;
-//        }
     }
 }

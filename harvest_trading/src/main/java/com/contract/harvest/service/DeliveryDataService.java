@@ -10,9 +10,7 @@ import com.contract.harvest.entity.HuobiEntity;
 import com.contract.harvest.service.inter.DataServiceInter;
 import com.contract.harvest.tools.Arith;
 import com.contract.harvest.tools.CodeConstant;
-import com.contract.harvest.tools.FormatParam;
 
-import com.google.gson.Gson;
 import com.huobi.api.enums.DirectionEnum;
 import com.huobi.api.enums.OffsetEnum;
 import com.huobi.api.exception.ApiException;
@@ -32,6 +30,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @author liwei
+ */
 @Slf4j
 @Service
 public class DeliveryDataService implements DataServiceInter {
@@ -333,20 +334,19 @@ public class DeliveryDataService implements DataServiceInter {
         }
         //获取openVolume的长度
         Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
-        String logStr = "";
+        String logStr;
         //如果止损了
         if (lossFlag && lossVolume > 0) {
             //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
             if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
                 redisService.lpush(openVolumeKey + symbol,String.valueOf(lossVolume));
                 logStr = "止损后倍投，止损张数：" + lossVolume;
-                log.info(logStr);
             } else {
                 //修剪列表 只留2个元素
                 redisService.listTrim(openVolumeKey + symbol,-2,-1);
                 logStr = "最大止损回到开始的地方，止损张数：" + lossVolume;
-                log.info(logStr);
             }
+            log.info(logStr);
             mailService.sendMail("订单止损拆分",logStr,"");
         } else if(winVolume > 0){
 
