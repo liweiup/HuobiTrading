@@ -27,6 +27,11 @@ public class ContractInfo {
             Cursor<Map.Entry<String, String>> cursor = redisService.hashScan(key,count);
             List<ContractMatchresultsResponse.DataBean.TradesBean> rList = new ArrayList<>();
             cursor.forEachRemaining(v -> rList.add(JSON.parseObject(v.getValue(),ContractMatchresultsResponse.DataBean.TradesBean.class)));
+            rList.sort((o1, o2) -> {
+                long cdate = o1.getCreateDate();
+                long cdate2 = o2.getCreateDate();
+                return (int) (cdate2 - cdate);
+            });
             contractList.add(rList);
         }
         return contractList;

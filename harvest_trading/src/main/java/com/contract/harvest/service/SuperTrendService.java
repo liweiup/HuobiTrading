@@ -40,7 +40,7 @@ public class SuperTrendService {
 
     public void trading(String symbol) throws InterruptedException, NullPointerException {
         if (mapFlag.get(symbol) != null && mapFlag.get(symbol) == 1) {
-            log.info("...............有订单等待成交...............");
+            log.info("..............."+ symbol +"有订单等待成交...............");
             return;
         }
         String symbolFlag = symbol + PubConst.DEFAULT_CS;
@@ -66,9 +66,9 @@ public class SuperTrendService {
         //k线结束的前30秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 30) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 80);
-        if (klineTimeFlag) {
-            log.info(lastDateId+"---"+secondTimestamp+"----klineTimeFlag-----"+ true);
-        }
+//        if (klineTimeFlag) {
+//            log.info(lastDateId+"---"+secondTimestamp+"----klineTimeFlag-----"+ true);
+//        }
         //当前持仓量
         List<ContractPositionInfoResponse.DataBean> contractPositionInfo = deliveryDataService.getContractPositionInfo(symbol, PubConst.DEFAULT_CS,"");
         int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
@@ -78,12 +78,12 @@ public class SuperTrendService {
         int openVolume = maxVolume - volume;
         boolean volumeFlag = volume < maxVolume;
         //队列是否有订单等待处理
-        Long queLen = redisService.getListLen(CacheService.WAIT_ORDER_QUEUE + symbol);
-        if (queLen > 0) {
-            log.info("已有订单等待处理,币:" + symbol);
-            Thread.sleep(3000);
-            return;
-        }
+//        Long queLen = redisService.getListLen(CacheService.WAIT_ORDER_QUEUE + symbol);
+//        if (queLen > 0) {
+//            log.info("已有订单等待处理,币:" + symbol);
+//            Thread.sleep(3000);
+//            return;
+//        }
         //交易
         if (tradingFlag && klineTimeFlag && volumeFlag) {
             log.info("...............生成订单...............");
