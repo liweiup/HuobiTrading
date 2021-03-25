@@ -48,4 +48,20 @@ public class PubConst {
     };
     //最大倍投次数
     public static final int MAX_OPEN_NUM = 5;
+    //usdt永续合约标识
+    public static final String SWAP_USDT = "-USDT";
+    //止盈止损的策略
+    public enum UPSTRATGY {
+        /**
+         * 斐波那契数列输一进一，赢一退二
+         * 0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987
+         */
+        FBNQ,
+        /**
+         * 帕罗利进阶下注
+         */
+        PLL,
+    };
+    //帕罗利进阶下注终止阶次
+    public static final int PLLNUM = 5;
 }

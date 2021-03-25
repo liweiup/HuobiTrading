@@ -4,12 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.contract.harvest.common.Depth;
 import com.contract.harvest.common.PubConst;
-import com.contract.harvest.entity.Candlestick;
 import com.contract.harvest.common.Topic;
 import com.contract.harvest.entity.HuobiEntity;
-import com.contract.harvest.service.inter.DataServiceInter;
+import com.contract.harvest.service.inter.DeliveryServiceInter;
 import com.contract.harvest.tools.Arith;
-import com.contract.harvest.tools.CodeConstant;
 
 import com.huobi.api.enums.DirectionEnum;
 import com.huobi.api.enums.OffsetEnum;
@@ -25,51 +23,26 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author liwei
  */
 @Slf4j
 @Service
-public class DeliveryDataService implements DataServiceInter {
+public class DeliveryDataService implements DeliveryServiceInter {
 
     @Resource
     private RedisService redisService;
+    @Resource
+    private DataService dataService;
     @Resource
     private HuobiEntity huobiEntity;
     @Resource
     private MailService mailService;
 
-    /**
-     * 获取kline数据
-     * @param channel 订阅的标识 如 BSV_CW
-     * @param topicIndex k线周期
-     */
-    @Override
-    public List<Candlestick.DataBean> getKlineList(String channel, int topicIndex) throws NullPointerException,IllegalArgumentException{
-        //最新的一条k线
-        String lineKey = Topic.formatChannel(Topic.KLINE_SUB,channel, topicIndex).toUpperCase();
-        String lineData = redisService.hashGet(CacheService.HUOBI_SUB,lineKey);
-        if ("".equals(lineData)) {
-            throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
-        }
-        Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
-        //过往的x条k线
-        String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,channel+Topic.PERIOD[PubConst.TOPIC_INDEX]);
-        if ("".equals(manyLineStr)) {
-            throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
-        }
-        List<Candlestick.DataBean> tickList = JSON.parseObject(manyLineStr,Candlestick.class).getData();
-        if (tick.getId() < tickList.get(tickList.size()-1).getId()) {
-            throw new IllegalArgumentException(CodeConstant.getMsg(CodeConstant.KLINE_DATE_ERROR));
-        }
-        tickList.set(tickList.size()-1,tick);
-        return tickList;
-    }
     /**
      * 获取合约信息
      * @param symbol 币种
@@ -103,7 +76,7 @@ public class DeliveryDataService implements DataServiceInter {
         ContractContractCodeResponse.DataBean contractInfo = getContractInfo(symbol,contractType,contractCode);
         //获取最新的价格
         String depthSubKey = Topic.formatChannel(Topic.DEPTH_SUB,symbol+contractFlag,PubConst.DEPTH_SUB_INDEX);
-        Depth.TickBean depth = getBidAskPrice(depthSubKey).getTick();
+        Depth.TickBean depth = dataService.getBidAskPrice(depthSubKey).getTick();
         List<List<BigDecimal>> depthPriceVol = direction == DirectionEnum.BUY ? depth.getBids() : depth.getAsks();
         double price = depthPriceVol.get(0).get(0).doubleValue();
         if (direction == DirectionEnum.BUY) {
@@ -117,7 +90,7 @@ public class DeliveryDataService implements DataServiceInter {
                 .symbol(symbol)
                 .contractType(contractType)
                 .contractCode(contractCode)
-                .clientOrderId(getClientOrderId())
+                .clientOrderId(dataService.getClientOrderId())
                 .price(BigDecimal.valueOf(price))
                 .volume(dealVolume)
                 .direction(direction)
@@ -149,33 +122,7 @@ public class DeliveryDataService implements DataServiceInter {
         }
         return order;
     }
-    /**
-     * 获取购买价格，与卖出价格
-     * @param depthSubKey 成交帐簿的key
-     */
-    @Override
-    public Depth getBidAskPrice(String depthSubKey) throws NullPointerException, InterruptedException {
-        String depthStr = redisService.hashGet(CacheService.HUOBI_SUB,depthSubKey);
-        if ("".equals(depthStr)) {
-            Thread.sleep(1000);
-            return getBidAskPrice(depthSubKey);
-        }
-        return JSON.parseObject(depthStr, Depth.class);
-    }
-    /**
-     * 生成随机订单id
-     */
-    @Override
-    public Long getClientOrderId() {
-        Random random = new Random();
-        // 随机数的量 自由定制，这是9位随机数
-        int r = random.nextInt(900) + 100;
-        // 返回  17位时间
-        DateFormat sdf = new SimpleDateFormat("mmssSSS");
-        String timeStr = sdf.format(new Date());
-        // 17位时间+9位随机数
-        return  Long.valueOf(timeStr + r);
-    }
+
 
     /**
      * 处理订单
@@ -271,7 +218,7 @@ public class DeliveryDataService implements DataServiceInter {
      * 将订单拆分成盈利订单 和亏损订单
      */
     @Override
-    public void contractLossWinOrder(String symbol) {
+    public void contractLossWinOrder(String symbol, PubConst.UPSTRATGY upStratgy) {
         //取到所有的成交订单
         String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,1,0,10);
         ContractMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,ContractMatchresultsResponse.class);
@@ -288,12 +235,14 @@ public class DeliveryDataService implements DataServiceInter {
         for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
-            //成交张数
-            int tradeVolume = historyRow.getTradeVolume().intValue();
-            //真实收益
-            double realProfit = historyRow.getRealProfit().doubleValue();
+            //订单id相同的订单成交张数
+            int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
+            //订单id相同的订单真实收益
+            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
             //开仓或平仓
             String offset = historyRow.getOffset();
+            historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
+            historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
             //订单信息json
             String historyRowJson = JSON.toJSONString(historyRow);
             //如果是平仓单
@@ -334,28 +283,46 @@ public class DeliveryDataService implements DataServiceInter {
         }
         //获取openVolume的长度
         Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
-        String logStr;
+        String logStr = "";
         //如果止损了
         if (lossFlag && lossVolume > 0) {
-            //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
-            if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
-                redisService.lpush(openVolumeKey + symbol,String.valueOf(lossVolume));
-                logStr = "止损后倍投，止损张数：" + lossVolume;
-            } else {
+            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
+                //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
+                if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
+                    redisService.lpush(openVolumeKey + symbol,String.valueOf(lossVolume));
+                    logStr = "止损后倍投，止损张数：" + lossVolume;
+                } else {
+                    //修剪列表 只留2个元素
+                    redisService.listTrim(openVolumeKey + symbol,-2,-1);
+                    logStr = "最大止损回到开始的地方，止损张数：" + lossVolume;
+                }
+            }
+            if (upStratgy == PubConst.UPSTRATGY.PLL) {
                 //修剪列表 只留2个元素
                 redisService.listTrim(openVolumeKey + symbol,-2,-1);
-                logStr = "最大止损回到开始的地方，止损张数：" + lossVolume;
+                logStr = "止损回到开始的地方，止损张数：" + lossVolume;
             }
             log.info(logStr);
             mailService.sendMail("订单止损拆分",logStr,"");
         } else if(winVolume > 0){
-
-            //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
-            int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
-            for (int i = 0;i < backNum; i++) {
-                redisService.leftPop(openVolumeKey + symbol);
+            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
+                //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
+                int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
+                for (int i = 0; i < backNum; i++) {
+                    redisService.leftPop(openVolumeKey + symbol);
+                }
+                logStr = "盈利后撤步数" + backNum;
             }
-            logStr = "盈利后撤步数" + backNum;
+            if (upStratgy == PubConst.UPSTRATGY.PLL) {
+                if (openVolumeLen >= PubConst.PLLNUM) {
+                    //修剪列表 只留2个元素
+                    redisService.listTrim(openVolumeKey + symbol,-2,-1);
+                    logStr = "止赢回到开始的地方，止赢张数：" + winVolume;
+                } else {
+                    redisService.lpush(openVolumeKey + symbol,String.valueOf(winVolume));
+                    logStr = "止赢后进阶，止盈张数：" + winVolume;
+                }
+            }
             log.info(logStr);
             mailService.sendMail("订单止盈拆分",logStr,"");
         }

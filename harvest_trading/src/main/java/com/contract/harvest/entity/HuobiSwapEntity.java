@@ -43,7 +43,11 @@ public class HuobiSwapEntity {
     @Resource
     private TransferApiServiceImpl swapTransferApi;
 
-    //获取合约信息
+    /**
+     * 获取合约信息
+     * @param contractCode false	string	合约代码，不填查询所有合约	BTC-USDT
+     * @param supportMarginMode false	string	合约支持的保证金模式	cross：仅支持全仓模式；isolated：仅支持逐仓模式；all：全逐仓都支持
+     */
     @Cacheable(keyGenerator = "HuobiEntity_keyGenerator",cacheManager = "huobiEntityRedisCacheManager")
     public String getSwapContractInfo(String contractCode, String supportMarginMode) throws ApiException {
         SwapContractInfoResponse result =

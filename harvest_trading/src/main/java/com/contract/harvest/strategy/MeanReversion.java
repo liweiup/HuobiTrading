@@ -10,7 +10,9 @@ import java.util.Map;
 
 public class MeanReversion {
     //═════════ MRC Parameter ════════
-    //Filter Type
+    /**
+     *
+     */
     public enum filterType{
         SuperSmoother,
         EhlersEMA,
@@ -98,6 +100,8 @@ public class MeanReversion {
                 alpha   = Arith.div(1,_length);
                 b0      = alpha;
                 a1      = 1 - alpha;
+                break;
+            default:
                 break;
         }
         double[] _Output = new double[_src.length];

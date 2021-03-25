@@ -29,6 +29,8 @@ public class SuperTrendService {
 
     @Resource
     DeliveryDataService deliveryDataService;
+    @Resource
+    DataService dataService;
     @Resource RedisService redisService;
     @Resource CacheService cacheService;
     //止损点
@@ -44,7 +46,7 @@ public class SuperTrendService {
             return;
         }
         String symbolFlag = symbol + PubConst.DEFAULT_CS;
-        List<Candlestick.DataBean> candlestickList = deliveryDataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
+        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
@@ -63,9 +65,9 @@ public class SuperTrendService {
         long secondTimestamp = FormatParam.getSecondTimestamp();
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId;
-        //k线结束的前30秒,后80秒之内交易
+        //k线结束的前8秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
-        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 30) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 80);
+        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 8) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 80);
 //        if (klineTimeFlag) {
 //            log.info(lastDateId+"---"+secondTimestamp+"----klineTimeFlag-----"+ true);
 //        }

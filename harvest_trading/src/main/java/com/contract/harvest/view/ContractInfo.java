@@ -46,6 +46,6 @@ public class ContractInfo {
         return spaceInfo;
     }
     public Set<String> getSymbols() {
-        return scheduledService.getSymbol();
+        return scheduledService.getSymbol(0);
     }
 }
