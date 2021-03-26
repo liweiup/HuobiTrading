@@ -4,9 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.entity.Candlestick;
 import com.contract.harvest.entity.CandlestickData;
-import com.contract.harvest.tools.FormatParam;
-import com.contract.harvest.tools.IndexCalculation;
-import com.contract.harvest.tools.TakeDate;
+import com.contract.harvest.tools.*;
 import com.huobi.api.enums.DirectionEnum;
 import com.huobi.api.enums.OffsetEnum;
 import com.huobi.api.exception.ApiException;
@@ -19,6 +17,7 @@ import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author liwei
@@ -51,7 +50,7 @@ public class SuperTrendService {
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
         double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
-        //计算可以做空的k线
+        //计算可以做多的k线
         List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id);
         if (klineIdList.size() == 0) {
             return;
@@ -65,12 +64,18 @@ public class SuperTrendService {
         long secondTimestamp = FormatParam.getSecondTimestamp();
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId;
-        //k线结束的前8秒,后80秒之内交易
+        //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
-        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 8) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 80);
-//        if (klineTimeFlag) {
-//            log.info(lastDateId+"---"+secondTimestamp+"----klineTimeFlag-----"+ true);
-//        }
+        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 10) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 60);
+        //获取最后一根可以做多k线的数据
+        Candlestick.DataBean candlestickRow = candlestickList.stream().filter(c->c.getId().equals(lastKlineId)).collect(Collectors.toList()).get(0);
+        double tickRowHl2 = ValueAccessor.hl2(candlestickRow);
+        //最后一根k线的数据
+        Candlestick.DataBean candlestickLastRow = candlestickList.get(candlestickList.size()-1);
+        double tickLastRowHl2 = ValueAccessor.hl2(candlestickLastRow);
+        //信号k线结束的8分钟之内，当前价格小于k线价格交易
+        boolean priceSignalFlag = Arith.compareNum(tickRowHl2,tickLastRowHl2);
+        boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < 480;
         //当前持仓量
         List<ContractPositionInfoResponse.DataBean> contractPositionInfo = deliveryDataService.getContractPositionInfo(symbol, PubConst.DEFAULT_CS,"");
         int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
@@ -79,18 +84,14 @@ public class SuperTrendService {
         //可开仓量
         int openVolume = maxVolume - volume;
         boolean volumeFlag = volume < maxVolume;
-        //队列是否有订单等待处理
-//        Long queLen = redisService.getListLen(CacheService.WAIT_ORDER_QUEUE + symbol);
-//        if (queLen > 0) {
-//            log.info("已有订单等待处理,币:" + symbol);
-//            Thread.sleep(3000);
-//            return;
-//        }
+        //信号确认
+        boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         //交易
-        if (tradingFlag && klineTimeFlag && volumeFlag) {
-            log.info("...............生成订单...............");
+        if (affirmTradingFlag && volumeFlag) {
+            log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,STOP_PERCENT,LIMIT_PERCENT);
+            System.out.println(order);
             redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
             redisService.convertAndSend("order_queue","hadleQueueOrder:" + symbol);
