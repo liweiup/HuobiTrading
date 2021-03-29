@@ -1,20 +1,16 @@
 package com.contract.harvest.entity;
 
 import com.alibaba.fastjson.JSON;
+import com.huobiswap.api.crossrequest.trade.SwapCrossMatchresultsRequest;
+import com.huobiswap.api.crossresponse.trade.SwapCrossMatchresultsResponse;
 import com.huobiswap.api.exception.ApiException;
 import com.huobiswap.api.request.account.SwapMarketHistoryKlineRequest;
-import com.huobiswap.api.request.trade.SwapCancelRequest;
-import com.huobiswap.api.request.trade.SwapCancelallRequest;
-import com.huobiswap.api.request.trade.SwapOrderInfoRequest;
-import com.huobiswap.api.request.trade.SwapOrderRequest;
+import com.huobiswap.api.request.trade.*;
 import com.huobiswap.api.response.account.SwapAccountInfoResponse;
 import com.huobiswap.api.response.account.SwapPositionInfoResponse;
 import com.huobiswap.api.response.market.SwapContractInfoResponse;
 import com.huobiswap.api.response.market.SwapMarketHistoryKlineResponse;
-import com.huobiswap.api.response.trade.SwapCancelResponse;
-import com.huobiswap.api.response.trade.SwapCancelallResponse;
-import com.huobiswap.api.response.trade.SwapOrderInfoResponse;
-import com.huobiswap.api.response.trade.SwapOrderResponse;
+import com.huobiswap.api.response.trade.*;
 import com.huobiswap.api.service.account.AccountAPIServiceImpl;
 import com.huobiswap.api.service.market.MarketAPIServiceImpl;
 import com.huobiswap.api.service.trade.TradeAPIServiceImpl;
@@ -145,6 +141,26 @@ public class HuobiSwapEntity {
                 .build();
         SwapOrderInfoResponse response =
                 swapTradeApi.swapOrderInfoRequest(request);
+        return JSON.toJSONString(response);
+    }
+
+    /**
+     * contract_code	true	string	合约代码	"BTC-USDT"...
+     * trade_type	true	int	交易类型	0:全部,1:买入开多,2: 卖出开空,3: 买入平空,4: 卖出平多,5: 卖出强平,6: 买入强平
+     * createDate	true	int	日期	可随意输入正整数，如果参数超过90则默认查询90天的数据
+     * page_index	false	int	页码，不填默认第1页
+     * page_size	false	int	不填默认20，不得多于50
+     */
+    public String swapMatchresultsRequest(String contractCode, int tradeType, int createDate, int pageIndex, int pageSize) {
+        SwapMatchresultsRequest request = SwapMatchresultsRequest.builder()
+                .contractCode(contractCode)
+                .tradeType(tradeType)
+                .createDate(createDate)
+                .pageIndex(pageIndex)
+                .pageSize(pageSize)
+                .build();
+        SwapMatchresultsResponse response =
+                swapTradeApi.swapMatchresultsRequest(request);
         return JSON.toJSONString(response);
     }
 }

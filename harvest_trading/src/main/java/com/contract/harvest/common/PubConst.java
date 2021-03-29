@@ -12,7 +12,7 @@ public class PubConst {
     //20:表示20档不合并的深度，150:表示150档不合并的深度
     public static final int DEPET_HIGH_FREQ_INDEX = 150;
     //默认的交易周期
-    public static final String DEFAULT_CS = "_CW";
+    public static final String DEFAULT_CS = "_NW";
     //获取的k线数量
     public static final int GET_KLINE_NUM = 800;
     //次季度
@@ -64,4 +64,8 @@ public class PubConst {
     };
     //帕罗利进阶下注终止阶次
     public static final int PLLNUM = 5;
+    //止损点
+    public static final double STOP_PERCENT = 0.06;
+    //止盈点
+    public static final double LIMIT_PERCENT = 0.03;
 }

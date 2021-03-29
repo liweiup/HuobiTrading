@@ -2,7 +2,6 @@ package com.contract.harvest.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -17,7 +16,10 @@ public class TaskService  {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskService.class);
 
-    @Resource SuperTrendService superTrendService;
+    @Resource
+    SuperTrendService superTrendService;
+    @Resource
+    SwapSuperTrendService swapSuperTrendService;
 
     @Qualifier("harvestExecutor")
     @Resource
@@ -34,7 +36,12 @@ public class TaskService  {
             }
             synchronized(getBuildLock(params.get("symbol"))) {
                 try {
-                    superTrendService.trading(params.get("symbol"));
+                    if ("delivery".equals(params.get("type"))) {
+                        superTrendService.trading(params.get("symbol"));
+                    }
+                    if ("swap".equals(params.get("type"))) {
+                        swapSuperTrendService.trading(params.get("symbol"));
+                    }
                 } catch (InterruptedException e) {
                     logger.error("线程异常"+e.getMessage());
                 } catch (Exception e) {

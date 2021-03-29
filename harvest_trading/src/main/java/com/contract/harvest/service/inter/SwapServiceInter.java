@@ -1,6 +1,6 @@
 package com.contract.harvest.service.inter;
 
-import com.contract.harvest.common.Depth;
+import com.contract.harvest.common.PubConst;
 import com.huobiswap.api.enums.DirectionEnum;
 import com.huobiswap.api.enums.OffsetEnum;
 import com.huobiswap.api.exception.ApiException;
@@ -36,22 +36,22 @@ public interface SwapServiceInter {
      * @return ContractPositionInfoResponse
      */
     List<SwapPositionInfoResponse.DataBean> getContractPositionInfo(String contractCode) throws ApiException,NullPointerException;
-//    /**
-//     * 设置持仓信息
-//     * @param symbol String
-//     */
-//    void setContractPositionInfo(String symbol) throws ApiException,NullPointerException;
-//
-//    /**
-//     * 将订单拆分成盈利订单 和亏损订单
-//     * @param symbol String
-//     */
-//    void contractLossWinOrder(String symbol) throws ApiException,NullPointerException;
-//
-//    /**
-//     * 获取最大可开仓张数
-//     * @param symbol String
-//     * @return int
-//     */
-//    int getMaxOpenVolume(String symbol) throws NullPointerException;
+    /**
+     * 设置持仓信息
+     * @param symbol String
+     */
+    void setContractPositionInfo(String symbol) throws ApiException,NullPointerException;
+
+    /**
+     * 将订单拆分成盈利订单 和亏损订单
+     * @param symbol String
+     */
+    void contractLossWinOrder(String symbol, PubConst.UPSTRATGY upStratgy) throws ApiException,NullPointerException;
+
+    /**
+     * 获取最大可开仓张数
+     * @param symbol String
+     * @return int
+     */
+    int getMaxOpenVolume(String symbol) throws NullPointerException;
 }

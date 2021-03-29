@@ -1,17 +1,14 @@
 package com.contract.harvest.service;
 
-import org.apache.http.HttpException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.io.IOException;
-import java.util.Arrays;
 
 @Service
 public class SubscriptionService {
 
     @Resource SuperTrendService superTrendService;
+    @Resource SwapSuperTrendService swapSuperTrendService;
     /**
      * 订阅分发
      * @param message string
@@ -20,8 +17,11 @@ public class SubscriptionService {
         //处理订单
         if (message.startsWith("hadleQueueOrder:")) {
             String[] strArr = message.split(":");
-            System.out.println(Arrays.toString(strArr));
             superTrendService.hadleQueueOrder(strArr[1]);
+        }
+        if (message.startsWith("swapHadleQueueOrder:")) {
+            String[] strArr = message.split(":");
+            swapSuperTrendService.hadleQueueOrder(strArr[1]);
         }
     }
 }

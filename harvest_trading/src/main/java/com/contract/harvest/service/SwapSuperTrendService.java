@@ -5,11 +5,11 @@ import com.contract.harvest.common.PubConst;
 import com.contract.harvest.entity.Candlestick;
 import com.contract.harvest.entity.CandlestickData;
 import com.contract.harvest.tools.*;
-import com.huobi.api.enums.DirectionEnum;
-import com.huobi.api.enums.OffsetEnum;
-import com.huobi.api.exception.ApiException;
-import com.huobi.api.request.trade.ContractOrderRequest;
-import com.huobi.api.response.account.ContractPositionInfoResponse;
+import com.huobiswap.api.enums.DirectionEnum;
+import com.huobiswap.api.enums.OffsetEnum;
+import com.huobiswap.api.exception.ApiException;
+import com.huobiswap.api.request.trade.SwapOrderRequest;
+import com.huobiswap.api.response.account.SwapPositionInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -24,10 +24,10 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class SuperTrendService {
+public class SwapSuperTrendService {
 
     @Resource
-    DeliveryDataService deliveryDataService;
+    SwapDataService swapDataService;
     @Resource
     DataService dataService;
     @Resource RedisService redisService;
@@ -40,8 +40,7 @@ public class SuperTrendService {
             log.info("..............."+ symbol +"有订单等待成交...............");
             return;
         }
-        String symbolFlag = symbol + PubConst.DEFAULT_CS;
-        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
+        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbol,PubConst.TOPIC_INDEX);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
@@ -73,10 +72,10 @@ public class SuperTrendService {
         boolean priceSignalFlag = Arith.compareNum(tickRowHl2,tickLastRowHl2);
         boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < 480;
         //当前持仓量
-        List<ContractPositionInfoResponse.DataBean> contractPositionInfo = deliveryDataService.getContractPositionInfo(symbol, PubConst.DEFAULT_CS,"");
+        List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol);
         int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
         //最大持仓
-        int maxVolume = deliveryDataService.getMaxOpenVolume(symbol);
+        int maxVolume = swapDataService.getMaxOpenVolume(symbol);
         //可开仓量
         int openVolume = maxVolume - volume;
         boolean volumeFlag = volume < maxVolume;
@@ -86,11 +85,10 @@ public class SuperTrendService {
         if (affirmTradingFlag && volumeFlag) {
             log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
-            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
-            System.out.println(order);
-            redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
+            SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
+            redisService.lpush(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
-            redisService.convertAndSend("order_queue","hadleQueueOrder:" + symbol);
+            redisService.convertAndSend("order_queue","swapHadleQueueOrder:" + symbol);
             //加锁
             mapFlag.put(symbol,1);
         }
@@ -101,26 +99,28 @@ public class SuperTrendService {
      */
     public void hadleQueueOrder(String symbol) throws ApiException,InterruptedException {
         //队列是否有订单等待处理
-        Long queLen = redisService.getListLen(CacheService.WAIT_ORDER_QUEUE + symbol);
+        Long queLen = redisService.getListLen(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol);
         if (queLen == 0) {
             log.info("...............订单队列是空的...............");
             return;
         }
         //获取订单
-        String orderStr = redisService.getListByIndex(CacheService.WAIT_ORDER_QUEUE+symbol, (long) 0);
-        ContractOrderRequest order = JSON.parseObject(orderStr, ContractOrderRequest.class);
+        String orderStr = redisService.getListByIndex(CacheService.SWAP_WAIT_ORDER_QUEUE+symbol, (long) 0);
+        SwapOrderRequest order = JSON.parseObject(orderStr, SwapOrderRequest.class);
         try {
-            deliveryDataService.handleOrder(order);
+            swapDataService.handleOrder(order);
         }catch (ApiException e) {
             log.error(e.getMessage());
         }
         //移除订单队列
-        redisService.leftPop(CacheService.WAIT_ORDER_QUEUE + symbol);
+        redisService.leftPop(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol);
         //订单id放入set
-        redisService.addSet(CacheService.ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
+        redisService.addSet(CacheService.SWAP_ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
         //刷新仓位
-        deliveryDataService.setContractPositionInfo(symbol);
+        swapDataService.setContractPositionInfo(symbol);
         //释放锁
         mapFlag.put(symbol,0);
+        log.info("...............订单处理结束...释放锁...............");
     }
+
 }

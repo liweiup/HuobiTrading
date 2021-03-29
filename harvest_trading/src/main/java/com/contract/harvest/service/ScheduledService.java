@@ -6,6 +6,7 @@ import com.contract.harvest.entity.HuobiEntity;
 import com.contract.harvest.entity.HuobiSwapEntity;
 import com.huobi.api.exception.ApiException;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
+import com.huobiswap.api.response.account.SwapPositionInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +30,8 @@ public class ScheduledService {
     private TaskService taskService;
     @Resource
     private DeliveryDataService deliveryDataService;
+    @Resource
+    private SwapDataService swapDataService;
 
     @Qualifier("harvestExecutor")
     @Resource
@@ -44,9 +47,17 @@ public class ScheduledService {
 
     @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() throws Exception {
+        Map<String,String> params = new HashMap<>();
+        //交割合约
         for (String symbol : getSymbol(0)) {
-            Map<String,String> params = new HashMap<>();
             params.put("symbol",symbol);
+            params.put("type","delivery");
+            taskService.execInvokeBi(params);
+        }
+        //永续合约
+        for (String symbol : getSymbol(1)) {
+            params.put("symbol",symbol + PubConst.SWAP_USDT);
+            params.put("type","swap");
             taskService.execInvokeBi(params);
         }
     }
@@ -97,6 +108,17 @@ public class ScheduledService {
                     continue;
                 }
                 deliveryDataService.contractLossWinOrder(symbol, PubConst.UPSTRATGY.PLL);
+            }
+            for (String symbol : getSymbol(1)) {
+                symbol = symbol+ PubConst.SWAP_USDT;
+                //持仓量
+                List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol);
+                int takeVolume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
+                //没有持仓的情况下再进行订单拆分
+                if (takeVolume != 0) {
+                    continue;
+                }
+                swapDataService.contractLossWinOrder(symbol, PubConst.UPSTRATGY.PLL);
             }
         } catch (ApiException e) {
             log.error("拆分订单"+e.getMessage());
