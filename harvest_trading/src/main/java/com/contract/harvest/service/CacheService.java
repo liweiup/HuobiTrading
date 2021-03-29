@@ -64,15 +64,11 @@ public class CacheService {
     public static final String SPACE_INFO = "HB:SPACE_INFO";
 
 
-    //获取合约信息
-    @Cacheable(keyGenerator = "universalGenerator",cacheManager = "huobiEntityHisbasisRedisCacheManager")
-    public void inform(String str) {
-        log.info("不做处理,"+str);
+    //提醒
+    @Cacheable(keyGenerator = "universalGenerator",cacheManager = "huobiEntityRemindCacheManager")
+    public void inform(String flag,String str) {
+        log.info(flag+str);
     }
 
-    @Cacheable(keyGenerator = "universalGenerator",cacheManager = "huobiOrderHandleRedisCacheManager")
-    public void remindOrderHandle(String str) {
-        log.info("不做处理,"+str);
-    }
 
 }

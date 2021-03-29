@@ -94,7 +94,7 @@ public class SuperTrendService {
             //加锁
             mapFlag.put(symbol,1);
         }
-        cacheService.inform("...............正常运行...............");
+        cacheService.inform("trading","...............正常运行...............");
     }
     /**
      * 处理订单
@@ -122,5 +122,6 @@ public class SuperTrendService {
         deliveryDataService.setContractPositionInfo(symbol);
         //释放锁
         mapFlag.put(symbol,0);
+        log.info("...............订单处理结束...释放锁...............");
     }
 }

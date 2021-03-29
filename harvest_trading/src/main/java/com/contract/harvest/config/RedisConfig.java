@@ -99,14 +99,8 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisCacheManager huobiEntityHisbasisRedisCacheManager(RedisCacheConfiguration publicRedisCacheConfiguration,LettuceConnectionFactory factory) {
+    public RedisCacheManager huobiEntityRemindCacheManager(RedisCacheConfiguration publicRedisCacheConfiguration,LettuceConnectionFactory factory) {
         publicRedisCacheConfiguration = publicRedisCacheConfiguration.entryTtl(Duration.ofHours(2));
-        return RedisCacheManager.builder(factory).cacheDefaults(publicRedisCacheConfiguration).build();
-    }
-
-    @Bean
-    public RedisCacheManager huobiOrderHandleRedisCacheManager(RedisCacheConfiguration publicRedisCacheConfiguration,LettuceConnectionFactory factory) {
-        publicRedisCacheConfiguration = publicRedisCacheConfiguration.entryTtl(Duration.ofMinutes(3));
         return RedisCacheManager.builder(factory).cacheDefaults(publicRedisCacheConfiguration).build();
     }
 

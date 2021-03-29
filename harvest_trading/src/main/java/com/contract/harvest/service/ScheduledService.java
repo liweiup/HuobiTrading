@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.util.*;
 
+/**
+ * @author liwei
+ */
 @Slf4j
 @Service
 public class ScheduledService {
@@ -46,16 +49,17 @@ public class ScheduledService {
     }
 
     @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
-    public void invokeBi() throws Exception {
-        Map<String,String> params = new HashMap<>();
+    public void invokeBi() {
         //交割合约
         for (String symbol : getSymbol(0)) {
+            Map<String,String> params = new HashMap<>();
             params.put("symbol",symbol);
             params.put("type","delivery");
             taskService.execInvokeBi(params);
         }
         //永续合约
         for (String symbol : getSymbol(1)) {
+            Map<String,String> params = new HashMap<>();
             params.put("symbol",symbol + PubConst.SWAP_USDT);
             params.put("type","swap");
             taskService.execInvokeBi(params);
@@ -90,6 +94,9 @@ public class ScheduledService {
             for (String symbol : getSymbol(0)) {
                 deliveryDataService.setContractPositionInfo(symbol);
             }
+            for (String symbol : getSymbol(1)) {
+                swapDataService.setContractPositionInfo(symbol + PubConst.SWAP_USDT);
+            }
         } catch (ApiException e) {
             log.error("刷新仓位"+e.getMessage());
         }
@@ -110,15 +117,14 @@ public class ScheduledService {
                 deliveryDataService.contractLossWinOrder(symbol, PubConst.UPSTRATGY.PLL);
             }
             for (String symbol : getSymbol(1)) {
-                symbol = symbol+ PubConst.SWAP_USDT;
                 //持仓量
-                List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol);
+                List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol+ PubConst.SWAP_USDT);
                 int takeVolume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
                 //没有持仓的情况下再进行订单拆分
                 if (takeVolume != 0) {
                     continue;
                 }
-                swapDataService.contractLossWinOrder(symbol, PubConst.UPSTRATGY.PLL);
+                swapDataService.contractLossWinOrder(symbol + PubConst.SWAP_USDT, PubConst.UPSTRATGY.PLL);
             }
         } catch (ApiException e) {
             log.error("拆分订单"+e.getMessage());

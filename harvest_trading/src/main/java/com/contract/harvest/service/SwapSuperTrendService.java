@@ -37,7 +37,7 @@ public class SwapSuperTrendService {
 
     public void trading(String symbol) throws InterruptedException, NullPointerException {
         if (mapFlag.get(symbol) != null && mapFlag.get(symbol) == 1) {
-            log.info("..............."+ symbol +"有订单等待成交...............");
+            log.info("...............SWAP-"+ symbol +"有订单等待成交...............");
             return;
         }
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbol,PubConst.TOPIC_INDEX);
@@ -83,7 +83,7 @@ public class SwapSuperTrendService {
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         //交易
         if (affirmTradingFlag && volumeFlag) {
-            log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
+            log.info("...SWAP-生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
             redisService.lpush(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
@@ -92,7 +92,7 @@ public class SwapSuperTrendService {
             //加锁
             mapFlag.put(symbol,1);
         }
-        cacheService.inform("...............正常运行...............");
+        cacheService.inform("SWAP-trading","...............正常运行...............");
     }
     /**
      * 处理订单
@@ -101,7 +101,7 @@ public class SwapSuperTrendService {
         //队列是否有订单等待处理
         Long queLen = redisService.getListLen(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol);
         if (queLen == 0) {
-            log.info("...............订单队列是空的...............");
+            log.info("...............SWAP-订单队列是空的...............");
             return;
         }
         //获取订单
@@ -120,7 +120,7 @@ public class SwapSuperTrendService {
         swapDataService.setContractPositionInfo(symbol);
         //释放锁
         mapFlag.put(symbol,0);
-        log.info("...............订单处理结束...释放锁...............");
+        log.info("...............SWAP-订单处理结束...释放锁...............");
     }
 
 }

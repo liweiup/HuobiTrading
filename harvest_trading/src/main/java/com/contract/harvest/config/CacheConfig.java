@@ -11,7 +11,8 @@ import java.util.Date;
 public class CacheConfig {
     @Bean("universalGenerator")
     public KeyGenerator universalGenerator() {
-        return (target, method, params) -> method.getName();
+        return (target, method, params) -> params[0]+method.getName();
+
     }
     @Bean("HuobiEntity_keyGenerator")
     public KeyGenerator keyGenerator() {
