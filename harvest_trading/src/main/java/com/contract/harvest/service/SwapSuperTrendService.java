@@ -108,7 +108,10 @@ public class SwapSuperTrendService {
         String orderStr = redisService.getListByIndex(CacheService.SWAP_WAIT_ORDER_QUEUE+symbol, (long) 0);
         SwapOrderRequest order = JSON.parseObject(orderStr, SwapOrderRequest.class);
         try {
+            //处理订单
             swapDataService.handleOrder(order);
+            //刷新仓位
+            swapDataService.setContractPositionInfo(symbol);
         }catch (ApiException e) {
             log.error(e.getMessage());
         }
@@ -116,8 +119,6 @@ public class SwapSuperTrendService {
         redisService.leftPop(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol);
         //订单id放入set
         redisService.addSet(CacheService.SWAP_ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
-        //刷新仓位
-        swapDataService.setContractPositionInfo(symbol);
         //释放锁
         mapFlag.put(symbol,0);
         log.info("...............SWAP-订单处理结束...释放锁...............");

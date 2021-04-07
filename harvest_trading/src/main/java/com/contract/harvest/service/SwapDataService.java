@@ -305,7 +305,7 @@ public class SwapDataService implements SwapServiceInter {
                 logStr = "SWAP-盈利后撤步数" + backNum;
             }
             if (upStratgy == PubConst.UPSTRATGY.PLL) {
-                if (openVolumeLen >= PubConst.PLLNUM) {
+                if (openVolumeLen + 1 >= PubConst.PLLNUM) {
                     //修剪列表 只留2个元素
                     redisService.listTrim(openVolumeKey + contractCode,-2,-1);
                     logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume;

@@ -111,6 +111,8 @@ public class SuperTrendService {
         ContractOrderRequest order = JSON.parseObject(orderStr, ContractOrderRequest.class);
         try {
             deliveryDataService.handleOrder(order);
+            //刷新仓位
+            deliveryDataService.setContractPositionInfo(symbol);
         }catch (ApiException e) {
             log.error(e.getMessage());
         }
@@ -118,8 +120,6 @@ public class SuperTrendService {
         redisService.leftPop(CacheService.WAIT_ORDER_QUEUE + symbol);
         //订单id放入set
         redisService.addSet(CacheService.ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
-        //刷新仓位
-        deliveryDataService.setContractPositionInfo(symbol);
         //释放锁
         mapFlag.put(symbol,0);
         log.info("...............订单处理结束...释放锁...............");

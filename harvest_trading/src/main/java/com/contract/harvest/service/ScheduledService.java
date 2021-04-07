@@ -88,7 +88,7 @@ public class ScheduledService {
         }
     }
     //刷新仓位
-    @Scheduled(cron = "0 0/10 * * * ?")  //每10分钟执行一次
+    @Scheduled(cron = "0 0/8 * * * ?")  //每8分钟执行一次
     public void refushPosition() {
         try {
             for (String symbol : getSymbol(0)) {
@@ -99,6 +99,8 @@ public class ScheduledService {
             }
         } catch (ApiException e) {
             log.error("刷新仓位"+e.getMessage());
+        } catch (Exception e) {
+            log.error("刷新仓位异常"+e.getMessage());
         }
     }
 
