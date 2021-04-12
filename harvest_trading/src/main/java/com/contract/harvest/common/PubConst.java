@@ -28,7 +28,7 @@ public class PubConst {
     //开仓张数
     public static final int VOLUME = 5;
     //订单获取成交信息次数
-    public static final int ORDER_TRY_NUM = 10;
+    public static final int ORDER_TRY_NUM = 6;
     /*订单报价类型 "limit":限价 "opponent":对手价 "post_only":只做maker单,
     #post only下单只受用户持仓数量限制,optimal_5：最优5档、optimal_10：最优10档、optimal_20：最优20档，ioc:IOC订单，
     #fok：FOK订单, "opponent_ioc"： 对手价-IOC下单，"optimal_5_ioc"：最优5档-IOC下单，"optimal_10_ioc"：最优10档-IOC下单，
@@ -68,4 +68,9 @@ public class PubConst {
     public static final double STOP_PERCENT = 0.06;
     //止盈点
     public static final double LIMIT_PERCENT = 0.03;
+    //信号k线结束的前PRE_SECOND秒,后LATER_SECOND秒之内交易
+    public static final int PRE_SECOND = 20;
+    public static final int LATER_SECOND = 80;
+    //信号k线结束的900秒之内，当前价格小于k线价格交易
+    public static final int LAST_SECOND = 1200;
 }

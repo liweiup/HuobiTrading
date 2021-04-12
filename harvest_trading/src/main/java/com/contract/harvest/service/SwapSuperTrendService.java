@@ -61,7 +61,7 @@ public class SwapSuperTrendService {
         boolean tradingFlag = lastKlineId == lastDateId;
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
-        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < 10) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < 60);
+        boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
         //获取最后一根可以做多k线的数据
         Candlestick.DataBean candlestickRow = candlestickList.stream().filter(c->c.getId().equals(lastKlineId)).collect(Collectors.toList()).get(0);
         double tickRowHl2 = ValueAccessor.hl2(candlestickRow);
@@ -70,7 +70,7 @@ public class SwapSuperTrendService {
         double tickLastRowHl2 = ValueAccessor.hl2(candlestickLastRow);
         //信号k线结束的8分钟之内，当前价格小于k线价格交易
         boolean priceSignalFlag = Arith.compareNum(tickRowHl2,tickLastRowHl2);
-        boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < 480;
+        boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LAST_SECOND;
         //当前持仓量
         List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol);
         int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
