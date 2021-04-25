@@ -223,104 +223,104 @@ public class SwapDataService implements SwapServiceInter {
             return;
         }
         //最新的订单是否止损了
-        boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
-                onlyNewestLossFlag = true,
-                onlyNewestWinFlag = true;
-        String direction = "";
-        for (SwapMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
-            //订单id
-            String orderIdStr = historyRow.getOrderIdStr().toString();
-            //订单id相同的订单成交张数
-            int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
-            //订单id相同的订单真实收益
-            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
-            //开仓或平仓
-            String offset = historyRow.getOffset();
-            historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
-            historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
-            direction = historyRow.getDirection();
-            //订单信息json
-            String historyRowJson = JSON.toJSONString(historyRow);
-            //如果是平仓单
-            if ("close".equals(offset)) {
-                //hash值存在就跳过
-                if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr)) {
-                    continue;
-                }
-                //如果是止损的订单
-                if (realProfit < 0) {
-                    //计算止损的张数
-                    if (lossFlag && onlyNewestLossFlag) {
-                        lossVolume += tradeVolume;
-                    }
-                    onlyNewestWinFlag = false;
-                    //把止损的订单放入队列
-                    redisService.hashSet(lossKey,orderIdStr,historyRowJson);
-                    continue;
-                }
-                //如果是止盈的订单
-                if (realProfit > 0) {
-                    //计算止盈的张数
-                    if (!lossFlag && onlyNewestWinFlag) {
-                        winVolume += tradeVolume;
-                    }
-                    onlyNewestLossFlag = false;
-                    //把止盈的订单放入队列
-                    redisService.hashSet(winKey,orderIdStr,historyRowJson);
-                }
-            }
-            //如果是开仓单
-            if ("open".equals(offset)) {
-                if (redisService.hashExists(orderDealOidKey,orderIdStr)) {
-                    continue;
-                }
-                redisService.hashSet(orderDealOidKey,orderIdStr,historyRowJson);
-            }
-        }
-        //获取openVolume的长度
-        Long openVolumeLen = redisService.getListLen(openVolumeKey + contractCode);
-        String logStr = "";
-        //如果止损了
-        if (lossFlag && lossVolume > 0 && "buy".equals(direction)) {
-            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
-                //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
-                if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
-                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(lossVolume));
-                    logStr = "SWAP-止损后倍投，止损张数：" + lossVolume;
-                } else {
-                    //修剪列表 只留2个元素
-                    redisService.listTrim(openVolumeKey + contractCode,-2,-1);
-                    logStr = "SWAP-最大止损回到开始的地方，止损张数：" + lossVolume;
-                }
-            }
-            if (upStratgy == PubConst.UPSTRATGY.PLL) {
-                //修剪列表 只留2个元素
-                redisService.listTrim(openVolumeKey + contractCode,-2,-1);
-                logStr = "SWAP-止损回到开始的地方，止损张数：" + lossVolume;
-            }
-            log.info(logStr);
-            mailService.sendMail("SWAP-订单止损拆分",logStr,"");
-        } else if(winVolume > 0 && "buy".equals(direction)){
-            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
-                //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
-                int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
-                for (int i = 0; i < backNum; i++) {
-                    redisService.leftPop(openVolumeKey + contractCode);
-                }
-                logStr = "SWAP-盈利后撤步数" + backNum;
-            }
-            if (upStratgy == PubConst.UPSTRATGY.PLL) {
-                if (openVolumeLen + 1 >= PubConst.PLLNUM) {
-                    //修剪列表 只留2个元素
-                    redisService.listTrim(openVolumeKey + contractCode,-2,-1);
-                    logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume;
-                } else {
-                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(winVolume));
-                    logStr = "SWAP-止赢后进阶，止盈张数：" + winVolume;
-                }
-            }
-            log.info(logStr);
-            mailService.sendMail("SWAP-订单止盈拆分",logStr,"");
-        }
+//        boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
+//                onlyNewestLossFlag = true,
+//                onlyNewestWinFlag = true;
+//        String direction = "";
+//        for (SwapMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
+//            //订单id
+//            String orderIdStr = historyRow.getOrderIdStr().toString();
+//            //订单id相同的订单成交张数
+//            int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
+//            //订单id相同的订单真实收益
+//            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
+//            //开仓或平仓
+//            String offset = historyRow.getOffset();
+//            historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
+//            historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
+//            direction = historyRow.getDirection();
+//            //订单信息json
+//            String historyRowJson = JSON.toJSONString(historyRow);
+//            //如果是平仓单
+//            if ("close".equals(offset)) {
+//                //hash值存在就跳过
+//                if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr)) {
+//                    continue;
+//                }
+//                //如果是止损的订单
+//                if (realProfit < 0) {
+//                    //计算止损的张数
+//                    if (lossFlag && onlyNewestLossFlag) {
+//                        lossVolume += tradeVolume;
+//                    }
+//                    onlyNewestWinFlag = false;
+//                    //把止损的订单放入队列
+//                    redisService.hashSet(lossKey,orderIdStr,historyRowJson);
+//                    continue;
+//                }
+//                //如果是止盈的订单
+//                if (realProfit > 0) {
+//                    //计算止盈的张数
+//                    if (!lossFlag && onlyNewestWinFlag) {
+//                        winVolume += tradeVolume;
+//                    }
+//                    onlyNewestLossFlag = false;
+//                    //把止盈的订单放入队列
+//                    redisService.hashSet(winKey,orderIdStr,historyRowJson);
+//                }
+//            }
+//            //如果是开仓单
+//            if ("open".equals(offset)) {
+//                if (redisService.hashExists(orderDealOidKey,orderIdStr)) {
+//                    continue;
+//                }
+//                redisService.hashSet(orderDealOidKey,orderIdStr,historyRowJson);
+//            }
+//        }
+//        //获取openVolume的长度
+//        Long openVolumeLen = redisService.getListLen(openVolumeKey + contractCode);
+//        String logStr = "";
+//        //如果止损了
+//        if (lossFlag && lossVolume > 0 && "buy".equals(direction)) {
+//            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
+//                //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
+//                if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
+//                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(lossVolume));
+//                    logStr = "SWAP-止损后倍投，止损张数：" + lossVolume;
+//                } else {
+//                    //修剪列表 只留2个元素
+//                    redisService.listTrim(openVolumeKey + contractCode,-2,-1);
+//                    logStr = "SWAP-最大止损回到开始的地方，止损张数：" + lossVolume;
+//                }
+//            }
+//            if (upStratgy == PubConst.UPSTRATGY.PLL) {
+//                //修剪列表 只留2个元素
+//                redisService.listTrim(openVolumeKey + contractCode,-2,-1);
+//                logStr = "SWAP-止损回到开始的地方，止损张数：" + lossVolume;
+//            }
+//            log.info(logStr);
+//            mailService.sendMail("SWAP-订单止损拆分",logStr,"");
+//        } else if(winVolume > 0 && "buy".equals(direction)){
+//            if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
+//                //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
+//                int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
+//                for (int i = 0; i < backNum; i++) {
+//                    redisService.leftPop(openVolumeKey + contractCode);
+//                }
+//                logStr = "SWAP-盈利后撤步数" + backNum;
+//            }
+//            if (upStratgy == PubConst.UPSTRATGY.PLL) {
+//                if (openVolumeLen + 1 >= PubConst.PLLNUM) {
+//                    //修剪列表 只留2个元素
+//                    redisService.listTrim(openVolumeKey + contractCode,-2,-1);
+//                    logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume;
+//                } else {
+//                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(winVolume));
+//                    logStr = "SWAP-止赢后进阶，止盈张数：" + winVolume;
+//                }
+//            }
+//            log.info(logStr);
+//            mailService.sendMail("SWAP-订单止盈拆分",logStr,"");
+//        }
     }
 }

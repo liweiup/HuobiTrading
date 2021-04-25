@@ -50,7 +50,7 @@ public class ScheduledService {
         return redisService.getSetMembers(symbolKey);
     }
 
-    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
+//    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() {
         //交割合约
         for (String symbol : getSymbol(0)) {
@@ -81,12 +81,15 @@ public class ScheduledService {
     /**
      * 存放最近的4小时kline数据
      */
-    @Scheduled(cron = "0 0 0/1 * * ?")  //每1小时执行一次
+//    @Scheduled(cron = "0 0 0/1 * * ?")  //每1小时执行一次
+    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void indexCalculation4Hour() {
         try {
-            dataService.saveIndexCalculation(PubConst.TOPIC_FLAG_INDEX);
+            dataService.judgeTrendVeer("BSV_NW",5,3);
+
+//            dataService.saveIndexCalculation(PubConst.TOPIC_FLAG_INDEX);
         } catch (ApiException e) {
-            log.error("存放5分钟的kline数据"+e.getMessage());
+            log.error("存放4小時的kline数据"+e.getMessage());
         }
     }
     //刷新仓位

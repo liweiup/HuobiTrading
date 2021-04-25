@@ -13,6 +13,8 @@ import com.contract.harvest.tools.CodeConstant;
 import com.contract.harvest.tools.IndexCalculation;
 import com.huobi.api.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -66,11 +68,14 @@ public class DataService implements DataServiceInter {
     /**
      * 获取过往的k线
      */
+    @Cacheable(key = "#symbol",value = "KLINE_HOUR_CACHE")
     public List<Candlestick.DataBean> getBeforeManyLine(String symbol,int topicIndex) {
         String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,symbol + Topic.PERIOD[topicIndex]);
+        log.info("fdd");
         if ("".equals(manyLineStr)) {
             throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
         }
+
         return JSON.parseObject(manyLineStr,Candlestick.class).getData();
     }
 
