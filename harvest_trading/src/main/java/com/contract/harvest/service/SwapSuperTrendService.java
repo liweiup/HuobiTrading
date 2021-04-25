@@ -46,7 +46,7 @@ public class SwapSuperTrendService {
         //计算atr
         double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
         //计算可以做多的k线
-        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id);
+        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8,1);
         if (klineIdList.size() == 0) {
             return;
         }
@@ -83,7 +83,7 @@ public class SwapSuperTrendService {
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         //交易
         if (affirmTradingFlag && volumeFlag) {
-            log.info("...SWAP-生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
+            log.info("...SWAP-生成订单....."+symbol+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
             redisService.lpush(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
@@ -92,7 +92,7 @@ public class SwapSuperTrendService {
             //加锁
             mapFlag.put(symbol,1);
         }
-        cacheService.inform("SWAP-trading","...............正常运行...............");
+        cacheService.inform("SWAP-trading",symbol+"...............正常运行...............");
     }
     /**
      * 处理订单
@@ -113,6 +113,7 @@ public class SwapSuperTrendService {
             //刷新仓位
             swapDataService.setContractPositionInfo(symbol);
         }catch (ApiException e) {
+            e.printStackTrace();
             log.error(e.getMessage());
         }
         //移除订单队列

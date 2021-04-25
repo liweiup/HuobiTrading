@@ -5,9 +5,13 @@ import com.contract.harvest.common.Depth;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.common.Topic;
 import com.contract.harvest.entity.Candlestick;
+import com.contract.harvest.entity.CandlestickData;
 import com.contract.harvest.entity.HuobiEntity;
+import com.contract.harvest.entity.HuobiSwapEntity;
 import com.contract.harvest.service.inter.DataServiceInter;
 import com.contract.harvest.tools.CodeConstant;
+import com.contract.harvest.tools.IndexCalculation;
+import com.huobi.api.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +34,10 @@ public class DataService implements DataServiceInter {
     @Resource
     private HuobiEntity huobiEntity;
     @Resource
+    private HuobiSwapEntity huobiSwapEntity;
+    @Resource
+    private ScheduledService scheduledService;
+    @Resource
     private MailService mailService;
 
     /**
@@ -47,16 +55,23 @@ public class DataService implements DataServiceInter {
         }
         Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
         //过往的x条k线
-        String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,channel+Topic.PERIOD[PubConst.TOPIC_INDEX]);
-        if ("".equals(manyLineStr)) {
-            throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
-        }
-        List<Candlestick.DataBean> tickList = JSON.parseObject(manyLineStr,Candlestick.class).getData();
+        List<Candlestick.DataBean> tickList = getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
         if (tick.getId() < tickList.get(tickList.size()-1).getId()) {
             throw new IllegalArgumentException(CodeConstant.getMsg(CodeConstant.KLINE_DATE_ERROR));
         }
         tickList.set(tickList.size()-1,tick);
         return tickList;
+    }
+
+    /**
+     * 获取过往的k线
+     */
+    public List<Candlestick.DataBean> getBeforeManyLine(String symbol,int topicIndex) {
+        String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,symbol + Topic.PERIOD[topicIndex]);
+        if ("".equals(manyLineStr)) {
+            throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
+        }
+        return JSON.parseObject(manyLineStr,Candlestick.class).getData();
     }
 
     /**
@@ -85,5 +100,38 @@ public class DataService implements DataServiceInter {
             return getBidAskPrice(depthSubKey);
         }
         return JSON.parseObject(depthStr, Depth.class);
+    }
+
+    /**
+     * 存放k线数据
+     * @param topicIndex 时间周期
+     */
+    public void saveIndexCalculation(int topicIndex) throws ApiException {
+        topicIndex = topicIndex == 0 ? PubConst.TOPIC_INDEX : topicIndex;
+        //交割合约
+        for (String symbol : scheduledService.getSymbol(0)) {
+            String symbolFlag = symbol + PubConst.DEFAULT_CS;
+            String strData = huobiEntity.getMarketHistoryKline(symbolFlag,Topic.PERIOD[topicIndex],PubConst.GET_KLINE_NUM);
+            redisService.hashSet(CacheService.HUOBI_KLINE,symbolFlag + Topic.PERIOD[topicIndex],strData);
+        }
+        //永续合约
+        for (String symbol : scheduledService.getSymbol(1)) {
+            String swapStrData = huobiSwapEntity.getSwapMarketHistoryKline(symbol+PubConst.SWAP_USDT,Topic.PERIOD[PubConst.TOPIC_INDEX],PubConst.GET_KLINE_NUM);
+            redisService.hashSet(CacheService.HUOBI_KLINE,symbol + PubConst.SWAP_USDT + Topic.PERIOD[PubConst.TOPIC_INDEX],swapStrData);
+        }
+    }
+
+    /**
+     * 判断Atr转向
+     */
+    public int judgeTrendVeer(String symbol,int topicIndex,int atrMultiplier) {
+        List<Candlestick.DataBean> candlestickList = getBeforeManyLine(symbol,topicIndex);
+        //kline的列值
+        CandlestickData tickColumnData = new CandlestickData(candlestickList);
+        //计算atr
+        double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
+        //计算trend
+        List<Long> trendList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,atrMultiplier,-1);
+        return trendList.get(trendList.size() - 1).intValue();
     }
 }

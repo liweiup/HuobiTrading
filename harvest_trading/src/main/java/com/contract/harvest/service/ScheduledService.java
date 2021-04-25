@@ -26,6 +26,8 @@ public class ScheduledService {
     @Resource
     private RedisService redisService;
     @Resource
+    private DataService dataService;
+    @Resource
     private HuobiEntity huobiEntity;
     @Resource
     private HuobiSwapEntity huobiSwapEntity;
@@ -65,26 +67,26 @@ public class ScheduledService {
             taskService.execInvokeBi(params);
         }
     }
-
     /**
      * 存放最近的kline数据
      */
     @Scheduled(cron = "0 0/2 * * * ?")  //每4分钟执行一次
     public void indexCalculation() {
         try {
-            //交割合约
-            for (String symbol : getSymbol(0)) {
-                String symbolFlag = symbol + PubConst.DEFAULT_CS;
-                String strData = huobiEntity.getMarketHistoryKline(symbolFlag,Topic.PERIOD[PubConst.TOPIC_INDEX],PubConst.GET_KLINE_NUM);
-                redisService.hashSet(CacheService.HUOBI_KLINE,symbolFlag + Topic.PERIOD[PubConst.TOPIC_INDEX],strData);
-            }
-            //永续合约
-            for (String symbol : getSymbol(1)) {
-                String swapStrData = huobiSwapEntity.getSwapMarketHistoryKline(symbol+PubConst.SWAP_USDT,Topic.PERIOD[PubConst.TOPIC_INDEX],PubConst.GET_KLINE_NUM);
-                redisService.hashSet(CacheService.HUOBI_KLINE,symbol + PubConst.SWAP_USDT + Topic.PERIOD[PubConst.TOPIC_INDEX],swapStrData);
-            }
+            dataService.saveIndexCalculation(1);
         } catch (ApiException e) {
-            log.error("存放最近的kline数据"+e.getMessage());
+            log.error("存放5分钟的kline数据"+e.getMessage());
+        }
+    }
+    /**
+     * 存放最近的4小时kline数据
+     */
+    @Scheduled(cron = "0 0 0/1 * * ?")  //每1小时执行一次
+    public void indexCalculation4Hour() {
+        try {
+            dataService.saveIndexCalculation(PubConst.TOPIC_FLAG_INDEX);
+        } catch (ApiException e) {
+            log.error("存放5分钟的kline数据"+e.getMessage());
         }
     }
     //刷新仓位
@@ -130,6 +132,8 @@ public class ScheduledService {
             }
         } catch (ApiException e) {
             log.error("拆分订单"+e.getMessage());
+        } catch (Exception e) {
+            log.error("拆分订单异常"+e.getMessage());
         }
     }
 }

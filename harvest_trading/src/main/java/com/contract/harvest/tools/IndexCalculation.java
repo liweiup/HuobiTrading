@@ -5,24 +5,25 @@ import com.tictactec.ta.lib.MAType;
 import com.tictactec.ta.lib.MInteger;
 import com.tictactec.ta.lib.RetCode;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.Arrays;
 
 public class IndexCalculation {
-    private static final int rsiPeriod = 14;
-    private static final int optInFastPeriod = 12;  // 快速移动平均线期间
-    private static final int optInSlowPeriod = 26;  // 慢速移动平均线期间
-    private static final int optInSignalPeriod = 9;  // Signal期间
-    private static final int optInTimePeriod = 30;  // 均线长度
-    private static final int bollOptInTimePeriod = 30;  // 布林带长度
-    private static final double optInNbDevUp = 2;  // 布林2倍标准差
-    private static final double optInNbDevDn = 2;
-    private static final double optInAcceleration = 0.02;//SAR抛物线指标
-    private static final double optInMaximum = 2;
-    private static final int adxInTimePeriod = 14;//ADX平均趋向指数
-    private static final int mfiInTimePeriod = 14;//MFI资金流量指标
-    private static final int atrInTimePeriod = 14;//atr指标
-    private final static double AtrMultiplier = 8.5;//指标突破计算
+    private static final int RSI_PERIOD = 14;
+    private static final int OPTINFAST_PERIOD = 12;  // 快速移动平均线期间
+    private static final int OPTINSLOW_PERIOD = 26;  // 慢速移动平均线期间
+    private static final int OPTINSIGNAL_PERIOD = 9;  // Signal期间
+    private static final int OPTINTIME_PERIOD = 30;  // 均线长度
+    private static final int BOLL_OPTINTIME_PERIOD = 30;  // 布林带长度
+    private static final double OPTINNB_DEVUP = 2;  // 布林2倍标准差
+    private static final double OPTINNB_DEVDN = 2;
+    private static final double OPTIN_ACCELERATION = 0.02;//SAR抛物线指标
+    private static final double OPTIN_MAXIMUM = 2;
+    private static final int ADXINTIME_PERIOD = 14;//ADX平均趋向指数
+    private static final int MFIINTIME_PERIOD = 14;//MFI资金流量指标
+    private static final int ATRINTIME_PERIOD = 14;//atr指标
+    private final static double ATR_MULTIPLIER = 8.5;//指标突破计算
 
     /**
      * 获取RSI
@@ -31,9 +32,7 @@ public class IndexCalculation {
      * @param period   长度
      */
     public static double[] RSI(double[] closeArr, int period) {
-        if (period == 0) {
-            period = rsiPeriod;
-        }
+        period = period == 0 ? RSI_PERIOD : period;
         Core c = new Core();
         double[] out = new double[closeArr.length];
         int rsiLookback = c.rsiLookback(period);
@@ -54,9 +53,9 @@ public class IndexCalculation {
         double[] outMACD = new double[closeArr.length];
         double[] outSignal = new double[closeArr.length];
         double[] outMACDHist = new double[closeArr.length];
-        int macdLookback = c.macdLookback(optInFastPeriod, optInSlowPeriod, optInSignalPeriod);
-        RetCode retCode = c.macd(0, closeArr.length - 1, closeArr, optInFastPeriod, optInSlowPeriod, optInSignalPeriod, new MInteger(), new MInteger(), outMACD, outSignal, outMACDHist);
-        Map<String, double[]> macdRes = new HashMap<String, double[]>();
+        int macdLookback = c.macdLookback(OPTINFAST_PERIOD, OPTINSLOW_PERIOD, OPTINSIGNAL_PERIOD);
+        RetCode retCode = c.macd(0, closeArr.length - 1, closeArr, OPTINFAST_PERIOD, OPTINSLOW_PERIOD, OPTINSIGNAL_PERIOD, new MInteger(), new MInteger(), outMACD, outSignal, outMACDHist);
+        Map<String, double[]> macdRes = new HashMap<>();
         if (retCode == RetCode.Success) {
             macdRes.put("outMACD", Arrays.copyOf(outMACD, outMACD.length - macdLookback));
             macdRes.put("outSignal", Arrays.copyOf(outSignal, outMACD.length - macdLookback));
@@ -68,12 +67,10 @@ public class IndexCalculation {
 
     /**
      * 均线
-     *
      * @param closeArr 一个数组，包含的k线的收盘数据
-     * @return
      */
     public static double[] MA(double[] closeArr, int period, String maType) {
-        period = period == 0 ? optInTimePeriod : period;
+        period = period == 0 ? OPTINTIME_PERIOD : period;
         double[] outMa = new double[closeArr.length];
         Core c = new Core();
         int lookback = 0;
@@ -112,14 +109,14 @@ public class IndexCalculation {
      * 在实际应用中，布林线有其滞后性，相对于其他技术指标在判断行情反转时参考价值较低，但在判断盘整行情终结节点上成功率较高
      */
     public static Map<String, double[]> bbands(double[] closeArr, int period) {
-        period = period == 0 ? bollOptInTimePeriod : period;
+        period = period == 0 ? BOLL_OPTINTIME_PERIOD : period;
         Core c = new Core();
         double[] outRealUpperBand = new double[closeArr.length];
         double[] outRealMiddleBand = new double[closeArr.length];
         double[] outRealLowerBand = new double[closeArr.length];
-        RetCode retCode = c.bbands(0, closeArr.length - 1, closeArr, period, optInNbDevUp, optInNbDevDn, MAType.Sma, new MInteger(), new MInteger(), outRealUpperBand, outRealMiddleBand, outRealLowerBand);
-        int bbandsLookback = c.bbandsLookback(period, optInNbDevUp, optInNbDevDn, MAType.Sma);
-        Map<String, double[]> bbandsRes = new HashMap<String, double[]>();
+        RetCode retCode = c.bbands(0, closeArr.length - 1, closeArr, period, OPTINNB_DEVUP, OPTINNB_DEVDN, MAType.Sma, new MInteger(), new MInteger(), outRealUpperBand, outRealMiddleBand, outRealLowerBand);
+        int bbandsLookback = c.bbandsLookback(period, OPTINNB_DEVUP, OPTINNB_DEVDN, MAType.Sma);
+        Map<String, double[]> bbandsRes = new HashMap<>();
         if (retCode == RetCode.Success) {
             bbandsRes.put("outRealUpperBand", Arrays.copyOf(outRealUpperBand, outRealUpperBand.length - bbandsLookback));
             bbandsRes.put("outRealMiddleBand", Arrays.copyOf(outRealMiddleBand, outRealMiddleBand.length - bbandsLookback));
@@ -136,8 +133,8 @@ public class IndexCalculation {
     public static double[] sar(double[] inHigh, double[] inLow, double[] idArr) {
         Core c = new Core();
         double[] outReal = new double[idArr.length];
-        int sarLookback = c.sarLookback(optInAcceleration, optInMaximum);
-        RetCode retCode = c.sar(0, idArr.length - 1, inHigh, inLow, optInAcceleration, optInMaximum, new MInteger(), new MInteger(), outReal);
+        int sarLookback = c.sarLookback(OPTIN_ACCELERATION, OPTIN_MAXIMUM);
+        RetCode retCode = c.sar(0, idArr.length - 1, inHigh, inLow, OPTIN_ACCELERATION, OPTIN_MAXIMUM, new MInteger(), new MInteger(), outReal);
         if (retCode == RetCode.Success) {
             return Arrays.copyOf(outReal, outReal.length - sarLookback);
         }
@@ -148,7 +145,7 @@ public class IndexCalculation {
      * ADX平均趋向指数
      */
     public static double[] adx(double[] inHigh, double[] inLow, double[] inClose, double[] idArr, int period, String adxType) {
-        period = period == 0 ? adxInTimePeriod : period;
+        period = period == 0 ? ADXINTIME_PERIOD : period;
         Core c = new Core();
         double[] outReal = new double[idArr.length];
         int lookback = 0;
@@ -173,13 +170,11 @@ public class IndexCalculation {
      * MFI资金流量指标
      */
     public static double[] mfi(double[] inHigh, double[] inLow, double[] inClose, double[] inVolume, double[] idArr, int period) {
-        period = period == 0 ? mfiInTimePeriod : period;
+        period = period == 0 ? MFIINTIME_PERIOD : period;
         Core c = new Core();
         double[] outReal = new double[idArr.length];
-        int lookback = 0;
-        RetCode retCode = null;
-        lookback = c.mfiLookback(period);
-        retCode = c.mfi(0, idArr.length - 1, inHigh, inLow, inClose, inVolume, period, new MInteger(), new MInteger(), outReal);
+        int lookback = c.mfiLookback(period);
+        RetCode retCode = c.mfi(0, idArr.length - 1, inHigh, inLow, inClose, inVolume, period, new MInteger(), new MInteger(), outReal);
         if (retCode == RetCode.Success) {
             return Arrays.copyOf(outReal, outReal.length - lookback);
         }
@@ -192,10 +187,8 @@ public class IndexCalculation {
     public static double[] obv(double[] inClose, double[] inVolume, double[] idArr) {
         Core c = new Core();
         double[] outReal = new double[idArr.length];
-        int lookback = 0;
-        RetCode retCode = null;
-        lookback = c.obvLookback();
-        retCode = c.obv(0, idArr.length - 1, inClose, inVolume, new MInteger(), new MInteger(), outReal);
+        int lookback = c.obvLookback();
+        RetCode retCode = c.obv(0, idArr.length - 1, inClose, inVolume, new MInteger(), new MInteger(), outReal);
         if (retCode == RetCode.Success) {
             return Arrays.copyOf(outReal, outReal.length - lookback);
         }
@@ -245,7 +238,7 @@ public class IndexCalculation {
      * 波动率指标可用于衡量价格的波动情况，辅助判断趋势改变的可能性，市场的交易氛围，也可以利用波动性指标来帮助止损止盈。
      */
     public static double[] volatilityIndicators(double[] inOpen, double[] inHigh, double[] inLow, double[] inClose, Long[] idArr, int period, String atrType) {
-        period = period == 0 ? atrInTimePeriod : period;
+        period = period == 0 ? ATRINTIME_PERIOD : period;
         Core c = new Core();
         double[] outReal = new double[idArr.length];
         int lookback = 0;
@@ -500,7 +493,8 @@ public class IndexCalculation {
     /**
      * 突破策略
      */
-    public static List<Long> superTrend(double[] _src,double[] _atr,double[] _close,Long[] _id) {
+    public static List<Long> superTrend(double[] _src,double[] _atr,double[] _close,Long[] _id,double atrMultiplier,int bf) {
+        atrMultiplier = atrMultiplier != 0.0 ? atrMultiplier : ATR_MULTIPLIER;
         if (_src.length != _atr.length) {
             _src = Arrays.copyOfRange(_src,_src.length-_atr.length,_src.length);
             _close = Arrays.copyOfRange(_close,_close.length-_atr.length,_close.length);
@@ -509,21 +503,28 @@ public class IndexCalculation {
         int length = _src.length;
         double[] up = new double[length];
         double[] dn = new double[length];
-        Integer[] trend = new Integer[length];
+        int[] trend = new int[length];
         List<Long> klineIdList =  new ArrayList<>();
         for (int i = 0; i < length; i++) {
-            up[i] = Arith.sub(_src[i],Arith.mul(AtrMultiplier,_atr[i]));
+            up[i] = Arith.sub(_src[i],Arith.mul(atrMultiplier,_atr[i]));
             double up_pre = i == 0 ? up[0] : up[i-1];
             up[i] = i == 0 ? up[i] : (_close[i-1] > up_pre ? Math.max(up[i], up_pre) : up[i]);
 
-            dn[i] = Arith.add(_src[i],Arith.mul(AtrMultiplier,_atr[i]));
+            dn[i] = Arith.add(_src[i],Arith.mul(atrMultiplier,_atr[i]));
             double dn_pre = i == 0 ? dn[0] : dn[i-1];
             dn[i] = i == 0 ? dn[i] : (_close[i-1] < dn_pre ? Math.min(dn[i], dn_pre) : dn[i]);
 
             trend[i] = i == 0 ? 1 : trend[i-1];
             trend[i] = (trend[i] == -1) && _close[i] > dn_pre ? 1 : (trend[i] == 1) && (_close[i] < up_pre) ? -1 : trend[i];
-            if (i != 0 && trend[i] == 1 && trend[i-1] == -1) {
-                klineIdList.add(new Double(_id[i]).longValue());
+            if (bf == 1) {
+                if (i != 0 && trend[i] == 1 && trend[i-1] == -1) {
+                    klineIdList.add(new Double(_id[i]).longValue());
+                }
+            }
+        }
+        if (bf == -1) {
+            for (int i : trend) {
+                klineIdList.add(new Double(i).longValue());
             }
         }
         return klineIdList;

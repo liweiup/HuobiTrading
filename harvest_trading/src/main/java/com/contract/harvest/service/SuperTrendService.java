@@ -46,8 +46,10 @@ public class SuperTrendService {
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
         double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
+        //计算趋势转向
+        int trendTag = dataService.judgeTrendVeer(symbolFlag,PubConst.TOPIC_FLAG_INDEX,3);
         //计算可以做多的k线
-        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id);
+        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8.5,1);
         if (klineIdList.size() == 0) {
             return;
         }
@@ -82,11 +84,12 @@ public class SuperTrendService {
         boolean volumeFlag = volume < maxVolume;
         //信号确认
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
+        DirectionEnum direction = trendTag == -1 ? DirectionEnum.SELL : DirectionEnum.BUY;
         //交易
         if (affirmTradingFlag && volumeFlag) {
             log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
-            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
+            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, direction,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
             System.out.println(order);
             redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知

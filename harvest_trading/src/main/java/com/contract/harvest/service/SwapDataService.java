@@ -219,10 +219,14 @@ public class SwapDataService implements SwapServiceInter {
                 lossKey = CacheService.SWAP_ORDER_LOSS + contractCode,
                 winKey = CacheService.SWAP_ORDER_WIN + contractCode;
         int winVolume = 0,lossVolume = 0;
+        if (historyData.size() == 0) {
+            return;
+        }
         //最新的订单是否止损了
         boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
                 onlyNewestLossFlag = true,
                 onlyNewestWinFlag = true;
+        String direction = "";
         for (SwapMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
@@ -234,6 +238,7 @@ public class SwapDataService implements SwapServiceInter {
             String offset = historyRow.getOffset();
             historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
             historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
+            direction = historyRow.getDirection();
             //订单信息json
             String historyRowJson = JSON.toJSONString(historyRow);
             //如果是平仓单
@@ -276,7 +281,7 @@ public class SwapDataService implements SwapServiceInter {
         Long openVolumeLen = redisService.getListLen(openVolumeKey + contractCode);
         String logStr = "";
         //如果止损了
-        if (lossFlag && lossVolume > 0) {
+        if (lossFlag && lossVolume > 0 && "buy".equals(direction)) {
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
                 if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
@@ -295,7 +300,7 @@ public class SwapDataService implements SwapServiceInter {
             }
             log.info(logStr);
             mailService.sendMail("SWAP-订单止损拆分",logStr,"");
-        } else if(winVolume > 0){
+        } else if(winVolume > 0 && "buy".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
                 int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);

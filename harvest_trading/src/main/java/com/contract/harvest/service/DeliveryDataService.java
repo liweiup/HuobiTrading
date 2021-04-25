@@ -105,8 +105,8 @@ public class DeliveryDataService implements DeliveryServiceInter {
         }
         //空仓止盈损
         if (direction == DirectionEnum.SELL) {
-            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,stopPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
-            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,limitPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
+            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,limitPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
+            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,stopPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
         }
         //设置止盈 止损
         if (!Arith.compareEqualNum(stopPercent,0)) {
@@ -231,6 +231,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
         boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
                 onlyNewestLossFlag = true,
                 onlyNewestWinFlag = true;
+        String direction = "";
         for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
@@ -240,6 +241,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
             double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
             //开仓或平仓
             String offset = historyRow.getOffset();
+            direction = historyRow.getDirection();
             historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
             historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
             //订单信息json
@@ -284,7 +286,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
         Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
         String logStr = "";
         //如果止损了
-        if (lossFlag && lossVolume > 0) {
+        if (lossFlag && lossVolume > 0 && "buy".equals(direction)) {
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
                 if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
@@ -303,7 +305,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
             }
             log.info(logStr);
             mailService.sendMail("订单止损拆分",logStr,"");
-        } else if(winVolume > 0){
+        } else if(winVolume > 0 && "buy".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
                 int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);

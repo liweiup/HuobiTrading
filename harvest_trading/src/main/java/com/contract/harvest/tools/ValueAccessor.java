@@ -52,4 +52,26 @@ public class ValueAccessor {
         }
         return tr;
     }
+
+    /**
+     * 偏移到最高K线
+     */
+    public int highestBars(List<Candlestick.DataBean> candlestick, int len)
+    {
+        double high = 1;
+        int highIndex = 0;
+        int startindex = candlestick.size() - len + 1;
+        int endIndex = candlestick.size();
+        for (int i = startindex; i < endIndex; i++)
+        {
+//            double value = values[i];
+            Candlestick.DataBean value = candlestick.get(i);
+//            if (value > high)
+//            {
+//                highIndex = i;
+//                high = value;
+//            }
+        }
+        return highIndex;
+    }
 }
