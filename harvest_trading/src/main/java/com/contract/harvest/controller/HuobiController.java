@@ -1,5 +1,7 @@
 package com.contract.harvest.controller;
 
+import com.contract.harvest.config.CacheConfig;
+import com.contract.harvest.service.CacheService;
 import com.contract.harvest.view.ContractInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -16,6 +18,8 @@ public class HuobiController {
 
     @Resource
     private ContractInfo contractInfo;
+    @Resource
+    private CacheService cacheService;
 
     @ApiOperation(value = "获取成交记录")
     @RequestMapping(value = "/getContractList", method = {
@@ -50,5 +54,12 @@ public class HuobiController {
         return contractInfo.getSymbols();
     }
 
-
+    @ApiOperation(value = "获取监控的币")
+    @RequestMapping(value = "/test", method = {
+            RequestMethod.GET, RequestMethod.POST})
+    public Object test() {
+//        cacheService.saveTimeFlag("info","wca");
+//        return cacheService.getTimeFlag("info","wca");
+        return "";
+    }
 }

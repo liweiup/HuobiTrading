@@ -1,9 +1,6 @@
 package com.contract.harvest.config;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -11,38 +8,79 @@ import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * <p>java方式：caffeine缓存配置</p>
+ */
 @Configuration
 @EnableCaching
 public class CaffeineConfig {
 
-    public enum CacheEnum {
-        KLINE_HOUR_CACHE(1, 20000, 50),
-        KLINE_MIN_CACHE(1, 20000, 50);
-        private final int minute;
-        private final long maxSize;
-        private final int initSize;
-        CacheEnum(int minute, long maxSize, int initSize) {
-            this.minute = minute;
+    private static final int DEFAULT_MAXSIZE = 1000;
+    private static final int DEFAULT_TTL = 10;
+    /**
+     * 个性化配置缓存
+     */
+    @Bean
+    public CacheManager caffeineCacheManger() {
+        SimpleCacheManager manager = new SimpleCacheManager();
+        //把各个cache注册到cacheManager中，CaffeineCache实现了org.springframework.cache.Cache接口
+        ArrayList<CaffeineCache> caches = new ArrayList<>();
+        for (Caches c : Caches.values()) {
+            caches.add(new CaffeineCache(c.name(),
+                    Caffeine.newBuilder().recordStats()
+                            .expireAfterWrite(c.getTtl(), TimeUnit.SECONDS)
+                            .maximumSize(c.getMaxSize())
+                            .build())
+            );
+        }
+        manager.setCaches(caches);
+        return manager;
+    }
+
+    /**
+     * 定义cache名称、超时时长秒、最大个数
+     * 每个cache缺省3600秒过期，最大个数1000
+     */
+    public enum Caches {
+        //ca
+        kline(80, 5),
+//        info(129600,5),
+        info(30,5),
+        role;
+
+        private int maxSize = DEFAULT_MAXSIZE;    //最大數量
+        private int ttl = DEFAULT_TTL;        //过期时间（秒）
+
+        Caches() {
+        }
+
+        Caches(int ttl) {
+            this.ttl = ttl;
+        }
+
+        Caches(int ttl, int maxSize) {
+            this.ttl = ttl;
             this.maxSize = maxSize;
-            this.initSize = initSize;
+        }
+
+        public int getMaxSize() {
+            return maxSize;
+        }
+
+        public void setMaxSize(int maxSize) {
+            this.maxSize = maxSize;
+        }
+
+        public int getTtl() {
+            return ttl;
+        }
+
+        public void setTtl(int ttl) {
+            this.ttl = ttl;
         }
     }
 
-    @Bean("caffeineCacheManager")
-    public CacheManager cacheManager() {
-        SimpleCacheManager cacheManager = new SimpleCacheManager();
-        ArrayList<CaffeineCache> caffeineCaches = new ArrayList<>();
-        for (CacheEnum cacheEnum : CacheEnum.values()) {
-            caffeineCaches.add(new CaffeineCache(cacheEnum.name(),
-                    Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(cacheEnum.minute))
-                            .initialCapacity(cacheEnum.initSize)
-                            .maximumSize(cacheEnum.maxSize).build()));
-        }
-        cacheManager.setCaches(caffeineCaches);
-        return cacheManager;
-    }
 }

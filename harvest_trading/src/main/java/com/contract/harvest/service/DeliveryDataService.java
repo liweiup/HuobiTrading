@@ -36,6 +36,8 @@ public class DeliveryDataService implements DeliveryServiceInter {
     @Resource
     private RedisService redisService;
     @Resource
+    private CacheService cacheService;
+    @Resource
     private DataService dataService;
     @Resource
     private HuobiEntity huobiEntity;
@@ -305,6 +307,9 @@ public class DeliveryDataService implements DeliveryServiceInter {
             }
             log.info(logStr);
             mailService.sendMail("订单止损拆分",logStr,"");
+            //停用一会
+            cacheService.saveTimeFlag(PubConst.TIME_FLAG);
+
         } else if(winVolume > 0 && "buy".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步

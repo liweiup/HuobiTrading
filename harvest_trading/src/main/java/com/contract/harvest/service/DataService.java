@@ -14,21 +14,19 @@ import com.contract.harvest.tools.IndexCalculation;
 import com.huobi.api.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * @author liwei
  */
 @Slf4j
 @Service
+@CacheConfig(cacheNames="HUOBI:CACHE",cacheManager = "caffeineCacheManger")
 public class DataService implements DataServiceInter {
 
     @Resource
@@ -40,7 +38,7 @@ public class DataService implements DataServiceInter {
     @Resource
     private ScheduledService scheduledService;
     @Resource
-    private MailService mailService;
+    private CacheService cacheService;
 
     /**
      * 获取kline数据
@@ -57,7 +55,7 @@ public class DataService implements DataServiceInter {
         }
         Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
         //过往的x条k线
-        List<Candlestick.DataBean> tickList = getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
+        List<Candlestick.DataBean> tickList = cacheService.getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
         if (tick.getId() < tickList.get(tickList.size()-1).getId()) {
             throw new IllegalArgumentException(CodeConstant.getMsg(CodeConstant.KLINE_DATE_ERROR));
         }
@@ -68,14 +66,11 @@ public class DataService implements DataServiceInter {
     /**
      * 获取过往的k线
      */
-    @Cacheable(key = "#symbol",value = "KLINE_HOUR_CACHE")
-    public List<Candlestick.DataBean> getBeforeManyLine(String symbol,int topicIndex) {
+    public List<Candlestick.DataBean> getBeforeManyLine(String symbol, int topicIndex) {
         String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,symbol + Topic.PERIOD[topicIndex]);
-        log.info("fdd");
         if ("".equals(manyLineStr)) {
             throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
         }
-
         return JSON.parseObject(manyLineStr,Candlestick.class).getData();
     }
 

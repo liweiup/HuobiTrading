@@ -15,7 +15,7 @@ public class PubConst {
     //默认的交易周期
     public static final String DEFAULT_CS = "_NW";
     //获取的k线数量
-    public static final int GET_KLINE_NUM = 800;
+    public static final int GET_KLINE_NUM = 2000;
     //次季度
     public static final String NEXT_QUARTER_FLAG = "_NQ";
     //季度
@@ -68,10 +68,12 @@ public class PubConst {
     //止损点
     public static final double STOP_PERCENT = 0.06;
     //止盈点
-    public static final double LIMIT_PERCENT = 0.032;
+    public static final double LIMIT_PERCENT = 0.04;
     //信号k线结束的前PRE_SECOND秒,后LATER_SECOND秒之内交易
     public static final int PRE_SECOND = 20;
     public static final int LATER_SECOND = 80;
     //信号k线结束的900秒之内，当前价格小于k线价格交易
     public static final int LAST_SECOND = 1200;
+    //时间暂停的缓存key
+    public static final String TIME_FLAG = "timeFlag";
 }

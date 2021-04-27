@@ -8,12 +8,18 @@ import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.cache.RedisCache;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.ListOperations;
@@ -25,6 +31,7 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.*;
 
 import java.time.Duration;
+import java.util.*;
 
 @Configuration
 @AutoConfigureAfter(RedisAutoConfiguration.class)
@@ -76,32 +83,21 @@ public class RedisConfig {
         return redisTemplate.opsForHash();
     }
 
-    /**
-     * 缓存配置
-     * @return
-     */
-    @Bean
-    public RedisCacheConfiguration publicRedisCacheConfiguration(Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer) {
-        return RedisCacheConfiguration.defaultCacheConfig()
-                .serializeKeysWith(RedisSerializationContext
-                .SerializationPair
-                .fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext
-                .SerializationPair
-                .fromSerializer(new StringRedisSerializer()));
-    }
-
     @Primary
     @Bean
-    public RedisCacheManager huobiEntityRedisCacheManager(RedisCacheConfiguration publicRedisCacheConfiguration,LettuceConnectionFactory factory) {
-        publicRedisCacheConfiguration = publicRedisCacheConfiguration.entryTtl(Duration.ofHours(1));
-        return RedisCacheManager.builder(factory).cacheDefaults(publicRedisCacheConfiguration).build();
-    }
-
-    @Bean
-    public RedisCacheManager huobiEntityRemindCacheManager(RedisCacheConfiguration publicRedisCacheConfiguration,LettuceConnectionFactory factory) {
-        publicRedisCacheConfiguration = publicRedisCacheConfiguration.entryTtl(Duration.ofHours(2));
-        return RedisCacheManager.builder(factory).cacheDefaults(publicRedisCacheConfiguration).build();
+    public CacheManager huobiEntityRedisCacheManager(LettuceConnectionFactory factory) {
+        RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
+                        .serializeKeysWith(RedisSerializationContext
+                        .SerializationPair
+                        .fromSerializer(new StringRedisSerializer()))
+                        .serializeValuesWith(RedisSerializationContext
+                        .SerializationPair
+                        .fromSerializer(new StringRedisSerializer()));
+        // 缓存空间配置
+        Map<String, RedisCacheConfiguration> configMap = new HashMap<>();
+        configMap.put("huobiEntity", redisCacheConfiguration.entryTtl(Duration.ofMinutes(60)));
+        configMap.put("huobiEntityRemind", redisCacheConfiguration.entryTtl(Duration.ofMinutes(120)));
+        return RedisCacheManager.builder(factory).initialCacheNames(configMap.keySet()).withInitialCacheConfigurations(configMap).build();
     }
 
     /**

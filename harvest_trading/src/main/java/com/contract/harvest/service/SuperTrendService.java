@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +47,10 @@ public class SuperTrendService {
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
         double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
-        //计算趋势转向
-        int trendTag = dataService.judgeTrendVeer(symbolFlag,PubConst.TOPIC_FLAG_INDEX,3);
+        //获取休息状态
+        boolean timeFlag = cacheService.getTimeFlag(PubConst.TIME_FLAG) == 0;
         //计算可以做多的k线
-        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8.5,1);
+        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8,1);
         if (klineIdList.size() == 0) {
             return;
         }
@@ -62,6 +63,11 @@ public class SuperTrendService {
         long secondTimestamp = FormatParam.getSecondTimestamp();
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId;
+        if (klineIdList.size() > 0) {
+            System.out.println(Arrays.toString(tickColumnData.close));
+            System.out.println(klineIdList);
+            return;
+        }
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
@@ -84,9 +90,9 @@ public class SuperTrendService {
         boolean volumeFlag = volume < maxVolume;
         //信号确认
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
-        DirectionEnum direction = trendTag == -1 ? DirectionEnum.SELL : DirectionEnum.BUY;
+        DirectionEnum direction = DirectionEnum.BUY;
         //交易
-        if (affirmTradingFlag && volumeFlag) {
+        if (affirmTradingFlag && volumeFlag && timeFlag) {
             log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, direction,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);

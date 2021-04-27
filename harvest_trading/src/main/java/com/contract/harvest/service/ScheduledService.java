@@ -1,9 +1,6 @@
 package com.contract.harvest.service;
 
 import com.contract.harvest.common.PubConst;
-import com.contract.harvest.common.Topic;
-import com.contract.harvest.entity.HuobiEntity;
-import com.contract.harvest.entity.HuobiSwapEntity;
 import com.huobi.api.exception.ApiException;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
 import com.huobiswap.api.response.account.SwapPositionInfoResponse;
@@ -26,11 +23,9 @@ public class ScheduledService {
     @Resource
     private RedisService redisService;
     @Resource
+    private CacheService cacheService;
+    @Resource
     private DataService dataService;
-    @Resource
-    private HuobiEntity huobiEntity;
-    @Resource
-    private HuobiSwapEntity huobiSwapEntity;
     @Resource
     private TaskService taskService;
     @Resource
@@ -50,7 +45,7 @@ public class ScheduledService {
         return redisService.getSetMembers(symbolKey);
     }
 
-//    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
+    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() {
         //交割合约
         for (String symbol : getSymbol(0)) {
@@ -70,7 +65,7 @@ public class ScheduledService {
     /**
      * 存放最近的kline数据
      */
-    @Scheduled(cron = "0 0/2 * * * ?")  //每4分钟执行一次
+    @Scheduled(cron = "0 0/2 * * * ?")  //每2分钟执行一次
     public void indexCalculation() {
         try {
             dataService.saveIndexCalculation(1);
@@ -82,14 +77,17 @@ public class ScheduledService {
      * 存放最近的4小时kline数据
      */
 //    @Scheduled(cron = "0 0 0/1 * * ?")  //每1小时执行一次
-    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
+//    @Scheduled(cron = "0/50 * * * * ?")  //每2秒执行一次
     public void indexCalculation4Hour() {
         try {
-            dataService.judgeTrendVeer("BSV_NW",5,3);
-
+            //停用一会
+            cacheService.saveTimeFlag(PubConst.TIME_FLAG);
+            System.out.println("停用一会");
+//            cacheService.inform("s","ddd");
+//            dataService.judgeTrendVeer("BSV_NW",5,3);
 //            dataService.saveIndexCalculation(PubConst.TOPIC_FLAG_INDEX);
         } catch (ApiException e) {
-            log.error("存放4小時的kline数据"+e.getMessage());
+            log.error("w"+e.getMessage());
         }
     }
     //刷新仓位
