@@ -95,8 +95,8 @@ public class RedisConfig {
                         .fromSerializer(new StringRedisSerializer()));
         // 缓存空间配置
         Map<String, RedisCacheConfiguration> configMap = new HashMap<>();
-        configMap.put("huobiEntity", redisCacheConfiguration.entryTtl(Duration.ofMinutes(60)));
-        configMap.put("huobiEntityRemind", redisCacheConfiguration.entryTtl(Duration.ofMinutes(120)));
+        configMap.put("HBCACHE:ENTITY", redisCacheConfiguration.entryTtl(Duration.ofMinutes(60)));
+        configMap.put("HBCACHE:ENTITYREMIND", redisCacheConfiguration.entryTtl(Duration.ofMinutes(120)));
         return RedisCacheManager.builder(factory).initialCacheNames(configMap.keySet()).withInitialCacheConfigurations(configMap).build();
     }
 

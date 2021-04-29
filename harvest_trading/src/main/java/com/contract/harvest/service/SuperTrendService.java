@@ -37,11 +37,11 @@ public class SuperTrendService {
     public volatile Map<String,Integer> mapFlag = new HashMap<>();
 
     public void trading(String symbol) throws InterruptedException, NullPointerException {
+        String symbolFlag = symbol + PubConst.DEFAULT_CS;
         if (mapFlag.get(symbol) != null && mapFlag.get(symbol) == 1) {
-            log.info("..............."+ symbol +"有订单等待成交...............");
+            log.info("..............."+ symbolFlag +"有订单等待成交...............");
             return;
         }
-        String symbolFlag = symbol + PubConst.DEFAULT_CS;
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
@@ -63,11 +63,6 @@ public class SuperTrendService {
         long secondTimestamp = FormatParam.getSecondTimestamp();
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId;
-        if (klineIdList.size() > 0) {
-            System.out.println(Arrays.toString(tickColumnData.close));
-            System.out.println(klineIdList);
-            return;
-        }
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
@@ -103,7 +98,7 @@ public class SuperTrendService {
             //加锁
             mapFlag.put(symbol,1);
         }
-        cacheService.inform("trading","...............正常运行...............");
+        cacheService.inform("trading-"+symbolFlag,"...............正在运行...............");
     }
     /**
      * 处理订单

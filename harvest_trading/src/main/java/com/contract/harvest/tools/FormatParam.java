@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.contract.harvest.entity.Candlestick;
 import com.xiaoleilu.hutool.date.DateTime;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -61,7 +62,7 @@ public class FormatParam<T>  {
         String res;
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         if (String.valueOf(timestamp).length() != 13) {
-            Date date = new Date(timestamp*1000);
+            timestamp = timestamp*1000;
         }
         res = simpleDateFormat.format(timestamp);
         return res;
@@ -82,6 +83,26 @@ public class FormatParam<T>  {
         Date date = new DateTime();
         String timestamp = String.valueOf(date.getTime()/1000);
         return Long.parseLong(timestamp);
+    }
+
+    /* 第一个与最后一个交互，第二个与倒数第二个交换，以此类推*/
+    public static double[] reverse(double[] a, int n)
+    {
+        int i;
+        double t;
+        for (i = 0; i < n / 2; i++) {
+            t = a[i];
+            a[i] = a[n - i - 1];
+            a[n - i - 1] = t;
+        }
+        return a;
+    }
+    /**
+     * 保留小数
+     */
+    public static double getScaleNum(double num,int s) {
+        BigDecimal bg = new BigDecimal(num);
+        return bg.setScale(s, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
 
 }

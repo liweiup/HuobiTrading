@@ -108,7 +108,7 @@ public class ScheduledService {
     }
 
     //拆分订单 15分钟一次
-    @Scheduled(cron = "0 0/15 * * * ?")  //每15分钟执行一次
+    @Scheduled(cron = "0 0/10 * * * ?")  //每15分钟执行一次
     public void contractLossWinOrder() {
         try {
             for (String symbol : getSymbol(0)) {

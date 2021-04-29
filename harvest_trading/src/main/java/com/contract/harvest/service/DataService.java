@@ -56,7 +56,7 @@ public class DataService implements DataServiceInter {
         Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
         //过往的x条k线
         List<Candlestick.DataBean> tickList = cacheService.getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
-        if (tick.getId() < tickList.get(tickList.size()-1).getId()) {
+        if (tick.getId() < tickList.get(tickList.size()-1).getId() || tick.getId() - tickList.get(tickList.size()-1).getId() > 300) {
             throw new IllegalArgumentException(CodeConstant.getMsg(CodeConstant.KLINE_DATE_ERROR));
         }
         tickList.set(tickList.size()-1,tick);

@@ -15,7 +15,7 @@ public class PubConst {
     //默认的交易周期
     public static final String DEFAULT_CS = "_NW";
     //获取的k线数量
-    public static final int GET_KLINE_NUM = 2000;
+    public static final int GET_KLINE_NUM = 800;
     //次季度
     public static final String NEXT_QUARTER_FLAG = "_NQ";
     //季度

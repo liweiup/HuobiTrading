@@ -47,8 +47,7 @@ public class CaffeineConfig {
     public enum Caches {
         //ca
         kline(80, 5),
-//        info(129600,5),
-        info(30,5),
+        info(129600,5),
         role;
 
         private int maxSize = DEFAULT_MAXSIZE;    //最大數量

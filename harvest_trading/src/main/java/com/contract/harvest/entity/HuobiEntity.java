@@ -37,7 +37,7 @@ public class HuobiEntity {
     private TransferApiServiceImpl transferApi;
 
     //获取合约信息
-    @Cacheable(keyGenerator = "HuobiEntity_keyGenerator",value = "huobiEntity", cacheManager = "huobiEntityRedisCacheManager")
+    @Cacheable(keyGenerator = "HuobiEntity_keyGenerator",value = "HBCACHE:ENTITY", cacheManager = "huobiEntityRedisCacheManager")
     public String getContractInfo(String symbol, String contractType, String contractCode) throws ApiException {
         ContractContractCodeResponse result =
                 marketApi.getContractContractInfo(symbol, contractType, contractCode);

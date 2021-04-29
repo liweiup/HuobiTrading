@@ -78,14 +78,14 @@ public class CacheService {
     private CacheManager caffeineCacheManger;
 
     //提醒
-    @Cacheable(keyGenerator = "universalGenerator",value = "huobiEntityRemind", cacheManager = "huobiEntityRedisCacheManager")
+    @Cacheable(keyGenerator = "universalGenerator",value = "HBCACHE:ENTITYREMIND", cacheManager = "huobiEntityRedisCacheManager")
     public void inform(String flag,String str) {
         log.info(flag+str);
     }
     /**
      * 获取过往的k线
      */
-//    @Cacheable(key = "'kline'.concat(#symbol+#topicIndex)",value = "kline",cacheManager = "caffeineCacheManger")
+    @Cacheable(key = "'kline'.concat(#symbol+#topicIndex)",value = "kline",cacheManager = "caffeineCacheManger")
     public List<Candlestick.DataBean> getBeforeManyLine(String symbol, int topicIndex) {
         return dataService.getBeforeManyLine(symbol,topicIndex);
     }

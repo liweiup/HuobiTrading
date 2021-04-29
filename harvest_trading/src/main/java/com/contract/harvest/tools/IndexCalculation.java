@@ -254,8 +254,12 @@ public class IndexCalculation {
             retCode = c.natr(0, idArr.length - 1, inHigh, inLow, inClose, period, new MInteger(), new MInteger(), outReal);
         }
         if (retCode == RetCode.Success) {
+            for (int i = 0; i < outReal.length; i++) {
+                outReal[i] = FormatParam.getScaleNum(outReal[i],2);
+            }
             return Arrays.copyOf(outReal, outReal.length - lookback);
         }
+
         return new double[]{};
     }
 
@@ -517,9 +521,11 @@ public class IndexCalculation {
             trend[i] = i == 0 ? 1 : trend[i-1];
             trend[i] = (trend[i] == -1) && _close[i] > dn_pre ? 1 : (trend[i] == 1) && (_close[i] < up_pre) ? -1 : trend[i];
             if (i != 0 && trend[i] == 1 && trend[i-1] == -1) {
+//                System.out.println(FormatParam.stampToDate(_id[i]));
                 klineIdList.add(_id[i]);
             }
         }
+//        System.out.println("===================");
         return klineIdList;
     }
 }
