@@ -57,8 +57,10 @@ public class SwapSuperTrendService {
         long lastKlineId = klineIdList.get(klineIdList.size() - 1);
         long lastDateId = dateList.get(dateList.size() - 1);
         long secondTimestamp = FormatParam.getSecondTimestamp();
+        //k线秒数
+        int klineSecond = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60;
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
-        boolean tradingFlag = lastKlineId == lastDateId;
+        boolean tradingFlag = lastKlineId == lastDateId  || lastDateId - lastKlineId == klineSecond;;
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);

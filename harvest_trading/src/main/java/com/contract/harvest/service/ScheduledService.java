@@ -45,7 +45,7 @@ public class ScheduledService {
         return redisService.getSetMembers(symbolKey);
     }
 
-    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
+//    @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() {
         //交割合约
         for (String symbol : getSymbol(0)) {

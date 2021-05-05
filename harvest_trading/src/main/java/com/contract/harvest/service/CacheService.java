@@ -1,13 +1,7 @@
 package com.contract.harvest.service;
 
-import com.alibaba.fastjson.JSON;
-import com.contract.harvest.common.Topic;
-import com.contract.harvest.config.CaffeineConfig;
 import com.contract.harvest.entity.Candlestick;
-import com.contract.harvest.tools.CodeConstant;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,10 +14,6 @@ import java.util.List;
 @Service
 @CacheConfig(cacheNames="HUOBI:CACHE")
 public class CacheService {
-    @Resource
-    private MailService mailService;
-    @Resource
-    private RedisService redisService;
     //交割合约的key前缀
     public static final String DELIVERY_CONTRACT = "HB:DELIVERY:CONTRACT:";
     //需要监控的币名称
@@ -42,7 +32,6 @@ public class CacheService {
     public static final String ORDER_WIN = DELIVERY_CONTRACT + "ORDER_WIN:";
     //开仓张数
     public static final String OPEN_VOLUME = DELIVERY_CONTRACT + "OPEN_VOLUME:";
-
 
     //永续合约的key前缀
     public static final String SWAP_CONTRACT = "HB:SWAP:CONTRACT:";
@@ -63,8 +52,8 @@ public class CacheService {
     //开仓张数
     public static final String SWAP_OPEN_VOLUME = SWAP_CONTRACT + "OPEN_VOLUME:";
 
-
-
+    //止盈止损百分比
+    public static final String HUOBI_ST_PERCENT = "HB:ST_PERCENT";
     //kline数据
     public static final String HUOBI_KLINE = "HB:KLINE_DATA";
     //订阅数据
@@ -74,8 +63,6 @@ public class CacheService {
 
     @Resource
     private DataService dataService;
-    @Resource
-    private CacheManager caffeineCacheManger;
 
     //提醒
     @Cacheable(keyGenerator = "universalGenerator",value = "HBCACHE:ENTITYREMIND", cacheManager = "huobiEntityRedisCacheManager")

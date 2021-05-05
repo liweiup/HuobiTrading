@@ -71,9 +71,9 @@ public class PubConst {
     public static final double LIMIT_PERCENT = 0.04;
     //信号k线结束的前PRE_SECOND秒,后LATER_SECOND秒之内交易
     public static final int PRE_SECOND = 20;
-    public static final int LATER_SECOND = 80;
+    public static final int LATER_SECOND = 50;
     //信号k线结束的900秒之内，当前价格小于k线价格交易
-    public static final int LAST_SECOND = 1200;
+    public static final int LAST_SECOND = 900;
     //时间暂停的缓存key
     public static final String TIME_FLAG = "timeFlag";
 }

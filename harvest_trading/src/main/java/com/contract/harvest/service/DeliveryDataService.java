@@ -219,9 +219,10 @@ public class DeliveryDataService implements DeliveryServiceInter {
      * 将订单拆分成盈利订单 和亏损订单
      */
     @Override
-    public void contractLossWinOrder(String symbol, PubConst.UPSTRATGY upStratgy) {
+    public void contractLossWinOrder(String symbol, PubConst.UPSTRATGY upStratgy) throws ApiException {
         //取到所有的成交订单
         String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,1,0,10);
+        System.out.println(contractMatchresultsStr);
         ContractMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,ContractMatchresultsResponse.class);
         List<ContractMatchresultsResponse.DataBean.TradesBean> historyData = contractMatchresultsResponse.getData().getTrades();
         String openVolumeKey = CacheService.OPEN_VOLUME,
@@ -288,7 +289,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
         Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
         String logStr = "";
         //如果止损了
-        if (lossFlag && lossVolume > 0 && "buy".equals(direction)) {
+        if (lossFlag && lossVolume > 0 && "sell".equals(direction)) {
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果倍投次数小于最大倍投次数就继续倍投，反之止损回到最初
                 if (openVolumeLen <= PubConst.MAX_OPEN_NUM) {
@@ -310,7 +311,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
             //停用一会
             cacheService.saveTimeFlag(PubConst.TIME_FLAG);
 
-        } else if(winVolume > 0 && "buy".equals(direction)){
+        } else if(winVolume > 0 && "sell".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
                 int backNum = openVolumeLen > 3 ? 2 : (openVolumeLen == 3 ? 1 : 0);
@@ -320,6 +321,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
                 logStr = "盈利后撤步数" + backNum;
             }
             if (upStratgy == PubConst.UPSTRATGY.PLL) {
+                System.out.println(openVolumeLen + 1);
                 if (openVolumeLen + 1 >= PubConst.PLLNUM) {
                     //修剪列表 只留2个元素
                     redisService.listTrim(openVolumeKey + symbol,-2,-1);

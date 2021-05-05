@@ -57,14 +57,16 @@ public class SuperTrendService {
         int dateIndex = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX];
         //时间周期序列
         List<Long> dateList = TakeDate.getDateList(dateIndex);
-        //做空条件
+        //做多条件
         long lastKlineId = klineIdList.get(klineIdList.size() - 1);
         long lastDateId = dateList.get(dateList.size() - 1);
         long secondTimestamp = FormatParam.getSecondTimestamp();
-        //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
-        boolean tradingFlag = lastKlineId == lastDateId;
+        //k线秒数
+        int klineSecond = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60;
+        //这条k线等于当前时间最近的周期 或者 等于最近的时间减去一根k线的时间
+        boolean tradingFlag = lastKlineId == lastDateId || lastDateId - lastKlineId == klineSecond;
         //信号k线结束的前10秒,后80秒之内交易
-        long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
+        long flagTimeNum = klineSecond + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
         //获取最后一根可以做多k线的数据
         Candlestick.DataBean candlestickRow = candlestickList.stream().filter(c->c.getId().equals(lastKlineId)).collect(Collectors.toList()).get(0);
@@ -91,7 +93,6 @@ public class SuperTrendService {
             log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, direction,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
-            System.out.println(order);
             redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
             redisService.convertAndSend("order_queue","hadleQueueOrder:" + symbol);
