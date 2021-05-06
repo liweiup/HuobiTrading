@@ -222,7 +222,6 @@ public class DeliveryDataService implements DeliveryServiceInter {
     public void contractLossWinOrder(String symbol, PubConst.UPSTRATGY upStratgy) throws ApiException {
         //取到所有的成交订单
         String contractMatchresultsStr = huobiEntity.contractMatchresultsRequest(symbol,1,0,10);
-        System.out.println(contractMatchresultsStr);
         ContractMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,ContractMatchresultsResponse.class);
         List<ContractMatchresultsResponse.DataBean.TradesBean> historyData = contractMatchresultsResponse.getData().getTrades();
         String openVolumeKey = CacheService.OPEN_VOLUME,

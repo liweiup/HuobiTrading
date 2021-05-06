@@ -1,6 +1,7 @@
 package com.contract.harvest.service.inter;
 
 import com.contract.harvest.common.Depth;
+import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.entity.Candlestick;
 import com.huobi.api.exception.ApiException;
 
@@ -23,4 +24,18 @@ public interface DataServiceInter {
      * @param depthSubKey 成交帐簿的key
      */
     Depth getBidAskPrice(String depthSubKey) throws InterruptedException, NullPointerException, ApiException;
+
+    /**
+     * 获取过往的K线
+     */
+    List<Candlestick.DataBean> getBeforeManyLine(String symbol, int topicIndex);
+
+    /**
+     * 存放k线数据
+     */
+    void saveIndexCalculation(int topicIndex);
+    /**
+     * 获取开仓参数
+     */
+    OpenInfo getOpenInfo(String symbol);
 }

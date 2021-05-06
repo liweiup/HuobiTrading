@@ -1,6 +1,7 @@
 package com.contract.harvest.service;
 
 import com.alibaba.fastjson.JSON;
+import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.entity.Candlestick;
 import com.contract.harvest.entity.CandlestickData;
@@ -40,29 +41,41 @@ public class SwapSuperTrendService {
             log.info("...............SWAP-"+ symbol +"有订单等待成交...............");
             return;
         }
+        //开仓参数
+        OpenInfo openInfo = dataService.getOpenInfo(symbol);
+        if (openInfo == null) {
+            log.info("..............."+ symbol +"未设置开仓参数...............");
+            return;
+        }
+        double atrMultiplier = openInfo.getAtrMultiplier(),
+                limitPercent = openInfo.getLimitPercent(),
+                stopPercent = openInfo.getStopPercent();
+        int atrLen = openInfo.getAtrLen();
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbol,PubConst.TOPIC_INDEX);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
-        double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
+        double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,atrLen,"atr");
         //计算可以做多的k线
-        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8,1);
+        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,atrMultiplier,1);
         if (klineIdList.size() == 0) {
             return;
         }
         int dateIndex = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX];
         //时间周期序列
         List<Long> dateList = TakeDate.getDateList(dateIndex);
+//        dateList.add((long) 1620295800);
         //做空条件
         long lastKlineId = klineIdList.get(klineIdList.size() - 1);
         long lastDateId = dateList.get(dateList.size() - 1);
         long secondTimestamp = FormatParam.getSecondTimestamp();
+//        secondTimestamp = 1620295871;
         //k线秒数
         int klineSecond = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60;
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
-        boolean tradingFlag = lastKlineId == lastDateId  || lastDateId - lastKlineId == klineSecond;;
+        boolean tradingFlag = lastKlineId == lastDateId  || lastDateId - lastKlineId == klineSecond;
         //信号k线结束的前10秒,后80秒之内交易
-        long flagTimeNum = (PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60) + lastKlineId - secondTimestamp;
+        long flagTimeNum = klineSecond + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
         //获取最后一根可以做多k线的数据
         Candlestick.DataBean candlestickRow = candlestickList.stream().filter(c->c.getId().equals(lastKlineId)).collect(Collectors.toList()).get(0);
@@ -73,6 +86,14 @@ public class SwapSuperTrendService {
         //信号k线结束的8分钟之内，当前价格小于k线价格交易
         boolean priceSignalFlag = Arith.compareNum(tickRowHl2,tickLastRowHl2);
         boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LAST_SECOND;
+        if (tradingFlag) {
+            log.info("lastKlineId:"+lastKlineId);
+            log.info("lastDateId:"+lastDateId);
+            log.info("secondTimestamp:"+secondTimestamp);
+            log.info("flagTimeNum:"+flagTimeNum);
+            log.info("klineTimeFlag:"+klineTimeFlag);
+            log.info("=================================");
+        }
         //当前持仓量
         List<SwapPositionInfoResponse.DataBean> contractPositionInfo = swapDataService.getContractPositionInfo(symbol);
         int volume = contractPositionInfo != null && contractPositionInfo.size() > 0 ? contractPositionInfo.get(0).getVolume().intValue() : 0;
@@ -87,7 +108,7 @@ public class SwapSuperTrendService {
         if (affirmTradingFlag && volumeFlag) {
             log.info("...SWAP-生成订单....."+symbol+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
-            SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
+            SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,stopPercent,limitPercent);
             redisService.lpush(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
             redisService.convertAndSend("order_queue","swapHadleQueueOrder:" + symbol);

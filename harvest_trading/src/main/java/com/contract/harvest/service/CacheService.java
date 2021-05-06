@@ -52,8 +52,8 @@ public class CacheService {
     //开仓张数
     public static final String SWAP_OPEN_VOLUME = SWAP_CONTRACT + "OPEN_VOLUME:";
 
-    //止盈止损百分比
-    public static final String HUOBI_ST_PERCENT = "HB:ST_PERCENT";
+    //开仓参数
+    public static final String HUOBI_OPEN_INFO = "HB:OPEN_INFO";
     //kline数据
     public static final String HUOBI_KLINE = "HB:KLINE_DATA";
     //订阅数据

@@ -1,6 +1,7 @@
 package com.contract.harvest.service;
 
 import com.alibaba.fastjson.JSON;
+import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.entity.Candlestick;
 import com.contract.harvest.entity.CandlestickData;
@@ -14,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,15 +42,25 @@ public class SuperTrendService {
             log.info("..............."+ symbolFlag +"有订单等待成交...............");
             return;
         }
+        //开仓参数
+        OpenInfo openInfo = dataService.getOpenInfo(symbolFlag);
+        if (openInfo == null) {
+            log.info("..............."+ symbolFlag +"未设置开仓参数...............");
+            return;
+        }
+        double atrMultiplier = openInfo.getAtrMultiplier(),
+                limitPercent = openInfo.getLimitPercent(),
+                stopPercent = openInfo.getStopPercent();
+        int atrLen = openInfo.getAtrLen();
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
-        double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,14,"atr");
+        double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,atrLen,"atr");
         //获取休息状态
         boolean timeFlag = cacheService.getTimeFlag(PubConst.TIME_FLAG) == 0;
         //计算可以做多的k线
-        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,8,1);
+        List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,atrMultiplier,1);
         if (klineIdList.size() == 0) {
             return;
         }
@@ -92,7 +102,7 @@ public class SuperTrendService {
         if (affirmTradingFlag && volumeFlag && timeFlag) {
             log.info("...生成订单....."+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
-            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, direction,openVolume,PubConst.STOP_PERCENT,PubConst.LIMIT_PERCENT);
+            ContractOrderRequest order = deliveryDataService.getPlanOrder(symbol,PubConst.DEFAULT_CS,"", OffsetEnum.OPEN, direction,openVolume,stopPercent,limitPercent);
             redisService.lpush(CacheService.WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
             //订阅通知
             redisService.convertAndSend("order_queue","hadleQueueOrder:" + symbol);

@@ -2,6 +2,7 @@ package com.contract.harvest.service;
 
 import com.alibaba.fastjson.JSON;
 import com.contract.harvest.common.Depth;
+import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.common.PubConst;
 import com.contract.harvest.common.Topic;
 import com.contract.harvest.entity.Candlestick;
@@ -66,12 +67,19 @@ public class DataService implements DataServiceInter {
     /**
      * 获取过往的k线
      */
+    @Override
     public List<Candlestick.DataBean> getBeforeManyLine(String symbol, int topicIndex) {
         String manyLineStr = redisService.hashGet(CacheService.HUOBI_KLINE,symbol + Topic.PERIOD[topicIndex]);
         if ("".equals(manyLineStr)) {
             throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
         }
         return JSON.parseObject(manyLineStr,Candlestick.class).getData();
+    }
+
+    @Override
+    public OpenInfo getOpenInfo(String symbol) {
+        String openInfo = redisService.hashGet(CacheService.HUOBI_OPEN_INFO,symbol);
+        return JSON.parseObject(openInfo,OpenInfo.class);
     }
 
     /**
@@ -106,6 +114,7 @@ public class DataService implements DataServiceInter {
      * 存放k线数据
      * @param topicIndex 时间周期
      */
+    @Override
     public void saveIndexCalculation(int topicIndex) throws ApiException {
         topicIndex = topicIndex == 0 ? PubConst.TOPIC_INDEX : topicIndex;
         //交割合约
