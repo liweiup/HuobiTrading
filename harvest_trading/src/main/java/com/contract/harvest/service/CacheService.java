@@ -77,14 +77,14 @@ public class CacheService {
         return dataService.getBeforeManyLine(symbol,topicIndex);
     }
 
-    @Cacheable(key = "'info'.concat(#key)",value = "info",cacheManager = "caffeineCacheManger",unless = "#result == 0")
-    public int getTimeFlag(String key) {
-        return 0;
+    @Cacheable(key = "#key",value = "HBCACHE:TIMEFLAG",cacheManager = "huobiEntityRedisCacheManager",unless = "#result.equals('0')")
+    public String getTimeFlag(String key) {
+        return "0";
     }
     //锁定
-    @CachePut(value = "info", key = "'info'.concat(#key)",cacheManager = "caffeineCacheManger")
-    public int saveTimeFlag(String key) {
-        return 1;
+    @CachePut(key = "#key",value = "HBCACHE:TIMEFLAG", cacheManager = "huobiEntityRedisCacheManager")
+    public String saveTimeFlag(String key) {
+        return "1";
     }
 
 }

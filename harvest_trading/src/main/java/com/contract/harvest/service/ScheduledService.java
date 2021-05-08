@@ -65,7 +65,7 @@ public class ScheduledService {
     /**
      * 存放最近的kline数据
      */
-    @Scheduled(cron = "0 0/2 * * * ?")  //每2分钟执行一次
+    @Scheduled(cron = "0 0/5 * * * ?")  //每5分钟执行一次
     public void indexCalculation() {
         try {
             dataService.saveIndexCalculation(1);
@@ -73,25 +73,8 @@ public class ScheduledService {
             log.error("存放5分钟的kline数据"+e.getMessage());
         }
     }
-    /**
-     * 存放最近的4小时kline数据
-     */
-//    @Scheduled(cron = "0 0 0/1 * * ?")  //每1小时执行一次
-//    @Scheduled(cron = "0/50 * * * * ?")  //每2秒执行一次
-    public void indexCalculation4Hour() {
-        try {
-            //停用一会
-            cacheService.saveTimeFlag(PubConst.TIME_FLAG);
-            System.out.println("停用一会");
-//            cacheService.inform("s","ddd");
-//            dataService.judgeTrendVeer("BSV_NW",5,3);
-//            dataService.saveIndexCalculation(PubConst.TOPIC_FLAG_INDEX);
-        } catch (ApiException e) {
-            log.error("w"+e.getMessage());
-        }
-    }
     //刷新仓位
-    @Scheduled(cron = "0 0/8 * * * ?")  //每8分钟执行一次
+    @Scheduled(cron = "0 0/5 * * * ?")  //每8分钟执行一次
     public void refushPosition() {
         try {
             for (String symbol : getSymbol(0)) {
@@ -106,7 +89,6 @@ public class ScheduledService {
             log.error("刷新仓位异常"+e.getMessage());
         }
     }
-
     //拆分订单 15分钟一次
     @Scheduled(cron = "0 0/10 * * * ?")  //每15分钟执行一次
     public void contractLossWinOrder() {
@@ -134,6 +116,7 @@ public class ScheduledService {
         } catch (ApiException e) {
             log.error("拆分订单"+e.getMessage());
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("拆分订单异常"+e.getMessage());
         }
     }

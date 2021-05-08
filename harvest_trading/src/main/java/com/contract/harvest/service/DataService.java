@@ -21,6 +21,7 @@ import javax.annotation.Resource;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author liwei
@@ -47,17 +48,22 @@ public class DataService implements DataServiceInter {
      * @param topicIndex k线周期
      */
     @Override
-    public List<Candlestick.DataBean> getKlineList(String channel, int topicIndex) throws NullPointerException,IllegalArgumentException{
+    public List<Candlestick.DataBean> getKlineList(String channel, int topicIndex) throws NullPointerException, IllegalArgumentException, InterruptedException {
         //最新的一条k线
         String lineKey = Topic.formatChannel(Topic.KLINE_SUB,channel, topicIndex).toUpperCase();
         String lineData = redisService.hashGet(CacheService.HUOBI_SUB,lineKey);
         if ("".equals(lineData)) {
+            scheduledService.indexCalculation();
+            Thread.sleep(2000L);
             throw new NullPointerException(CodeConstant.getMsg(CodeConstant.NONE_KLINE_DATA));
         }
         Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
         //过往的x条k线
         List<Candlestick.DataBean> tickList = cacheService.getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
-        if (tick.getId() < tickList.get(tickList.size()-1).getId() || tick.getId() - tickList.get(tickList.size()-1).getId() > 300) {
+        tickList = tickList.stream().filter(t->t.getVol().intValue() != 0).collect(Collectors.toList());
+        if (!tick.getId().equals(tickList.get(tickList.size()-1).getId())) {
+            scheduledService.indexCalculation();
+            Thread.sleep(2000L);
             throw new IllegalArgumentException(CodeConstant.getMsg(CodeConstant.KLINE_DATE_ERROR));
         }
         tickList.set(tickList.size()-1,tick);

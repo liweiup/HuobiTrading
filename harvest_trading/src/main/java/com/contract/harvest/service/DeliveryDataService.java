@@ -227,33 +227,52 @@ public class DeliveryDataService implements DeliveryServiceInter {
         String openVolumeKey = CacheService.OPEN_VOLUME,
                 orderDealOidKey = CacheService.ORDER_DEAL_OID + symbol,
                 lossKey = CacheService.ORDER_LOSS + symbol,
-                winKey = CacheService.ORDER_WIN + symbol;
+                winKey = CacheService.ORDER_WIN + symbol,
+                contractType = PubConst.CONTRACT_TYPE.get(PubConst.DEFAULT_CS),
+                symbolFlag = symbol + PubConst.DEFAULT_CS;
         int winVolume = 0,lossVolume = 0;
+        double realProfit = 0;
         //最新的订单是否止损了
         boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
                 onlyNewestLossFlag = true,
                 onlyNewestWinFlag = true;
         String direction = "";
+        Set<String> orderIdStrSet = new HashSet<>();
         for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
+            //不是相同交易周期跳过
+            if (!historyRow.getContractType().equals(contractType)) {
+                continue;
+            }
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
+            //id相同跳过
+            if (orderIdStrSet.contains(orderIdStr)) {
+                continue;
+            }
+            //hash值存在就跳过
+            if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr) || redisService.hashExists(orderDealOidKey,orderIdStr)) {
+                continue;
+            }
             //订单id相同的订单成交张数
             int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
+            //成交额
+            int tradeTurnover = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeTurnover().intValue()).sum();
+            //手续费
+            double tradeFee = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getTradeFee()).sum();
             //订单id相同的订单真实收益
-            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
+            realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
             //开仓或平仓
             String offset = historyRow.getOffset();
-            direction = historyRow.getDirection();
             historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
             historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
+            historyRow.setTradeFee(tradeFee);
+            historyRow.setTradeTurnover(BigDecimal.valueOf(tradeTurnover));
             //订单信息json
             String historyRowJson = JSON.toJSONString(historyRow);
+            orderIdStrSet.add(orderIdStr);
             //如果是平仓单
             if ("close".equals(offset)) {
-                //hash值存在就跳过
-                if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr)) {
-                    continue;
-                }
+                direction = historyRow.getDirection();
                 //如果是止损的订单
                 if (realProfit < 0) {
                     //计算止损的张数
@@ -278,15 +297,12 @@ public class DeliveryDataService implements DeliveryServiceInter {
             }
             //如果是开仓单
             if ("open".equals(offset)) {
-                if (redisService.hashExists(orderDealOidKey,orderIdStr)) {
-                    continue;
-                }
                 redisService.hashSet(orderDealOidKey,orderIdStr,historyRowJson);
             }
         }
         //获取openVolume的长度
         Long openVolumeLen = redisService.getListLen(openVolumeKey + symbol);
-        String logStr = "";
+        String logStr = symbol+"--";
         //如果止损了
         if (lossFlag && lossVolume > 0 && "sell".equals(direction)) {
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
@@ -305,11 +321,11 @@ public class DeliveryDataService implements DeliveryServiceInter {
                 redisService.listTrim(openVolumeKey + symbol,-2,-1);
                 logStr = "止损回到开始的地方，止损张数：" + lossVolume;
             }
-            log.info(logStr);
-            mailService.sendMail("订单止损拆分",logStr,"");
+            logStr += " 收益：" + realProfit;
+            mailService.sendMail(symbol+"订单止损拆分",logStr,"");
             //停用一会
-            cacheService.saveTimeFlag(PubConst.TIME_FLAG);
-
+            cacheService.saveTimeFlag(symbolFlag);
+            log.info(logStr);
         } else if(winVolume > 0 && "sell".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
@@ -330,6 +346,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
                     logStr = "止赢后进阶，止盈张数：" + winVolume;
                 }
             }
+            logStr += " 收益：" + realProfit;
             log.info(logStr);
             mailService.sendMail("订单止盈拆分",logStr,"");
         }

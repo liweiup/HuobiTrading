@@ -58,7 +58,7 @@ public class SuperTrendService {
         //计算atr
         double[] atr = IndexCalculation.volatilityIndicators(tickColumnData.open,tickColumnData.high,tickColumnData.low,tickColumnData.close,tickColumnData.id,atrLen,"atr");
         //获取休息状态
-        boolean timeFlag = cacheService.getTimeFlag(PubConst.TIME_FLAG) == 0;
+        boolean timeFlag = "0".equals(cacheService.getTimeFlag(symbolFlag));
         //计算可以做多的k线
         List<Long> klineIdList = IndexCalculation.superTrend(tickColumnData.hl2,atr,tickColumnData.close,tickColumnData.id,atrMultiplier,1);
         if (klineIdList.size() == 0) {

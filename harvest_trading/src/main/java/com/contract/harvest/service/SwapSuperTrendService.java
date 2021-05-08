@@ -44,7 +44,7 @@ public class SwapSuperTrendService {
         //开仓参数
         OpenInfo openInfo = dataService.getOpenInfo(symbol);
         if (openInfo == null) {
-            log.info("..............."+ symbol +"未设置开仓参数...............");
+            log.info("...............SWAP-"+ symbol +"未设置开仓参数...............");
             return;
         }
         double atrMultiplier = openInfo.getAtrMultiplier(),
@@ -64,16 +64,16 @@ public class SwapSuperTrendService {
         int dateIndex = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX];
         //时间周期序列
         List<Long> dateList = TakeDate.getDateList(dateIndex);
-//        dateList.add((long) 1620295800);
         //做空条件
         long lastKlineId = klineIdList.get(klineIdList.size() - 1);
         long lastDateId = dateList.get(dateList.size() - 1);
         long secondTimestamp = FormatParam.getSecondTimestamp();
-//        secondTimestamp = 1620295871;
         //k线秒数
         int klineSecond = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60;
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId  || lastDateId - lastKlineId == klineSecond;
+        //获取休息状态
+        boolean timeFlag = "0".equals(cacheService.getTimeFlag(symbol));
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = klineSecond + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
@@ -105,7 +105,7 @@ public class SwapSuperTrendService {
         //信号确认
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         //交易
-        if (affirmTradingFlag && volumeFlag) {
+        if (affirmTradingFlag && volumeFlag && timeFlag) {
             log.info("...SWAP-生成订单....."+symbol+"ing："+(tradingFlag && klineTimeFlag) + "------ed:"+(priceSignalFlag && prieKlineTimeFlag));
             //生成订单
             SwapOrderRequest order = swapDataService.getPlanOrder(symbol, OffsetEnum.OPEN, DirectionEnum.BUY,openVolume,stopPercent,limitPercent);

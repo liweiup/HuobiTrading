@@ -23,7 +23,9 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +43,8 @@ public class SwapDataService implements SwapServiceInter {
     private HuobiSwapEntity huobiSwapEntity;
     @Resource
     private MailService mailService;
+    @Resource
+    private CacheService cacheService;
 
     @Override
     public SwapContractInfoResponse.DataBean getContractInfo(String contractCode) throws NullPointerException, ApiException {
@@ -211,7 +215,7 @@ public class SwapDataService implements SwapServiceInter {
     @Override
     public void contractLossWinOrder(String contractCode, PubConst.UPSTRATGY upStratgy) {
         //取到所有的成交订单
-        String contractMatchresultsStr = huobiSwapEntity.swapMatchresultsRequest(contractCode,0,10,1,50);
+        String contractMatchresultsStr = huobiSwapEntity.swapMatchresultsRequest(contractCode,0,10,1,10);
         SwapMatchresultsResponse contractMatchresultsResponse = JSON.parseObject(contractMatchresultsStr,SwapMatchresultsResponse.class);
         List<SwapMatchresultsResponse.DataBean.TradesBean> historyData = contractMatchresultsResponse.getData().getTrades();
         String openVolumeKey = CacheService.SWAP_OPEN_VOLUME,
@@ -219,6 +223,7 @@ public class SwapDataService implements SwapServiceInter {
                 lossKey = CacheService.SWAP_ORDER_LOSS + contractCode,
                 winKey = CacheService.SWAP_ORDER_WIN + contractCode;
         int winVolume = 0,lossVolume = 0;
+        double realProfit = 0;
         if (historyData.size() == 0) {
             return;
         }
@@ -227,26 +232,38 @@ public class SwapDataService implements SwapServiceInter {
                 onlyNewestLossFlag = true,
                 onlyNewestWinFlag = true;
         String direction = "";
+        Set<String> orderIdStrSet = new HashSet<>();
         for (SwapMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
-            //订单id相同的订单成交张数
-            int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
-            //订单id相同的订单真实收益
-            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
+            //id相同跳过
+            if (orderIdStrSet.contains(orderIdStr)) {
+                continue;
+            }
+            //hash值存在就跳过
+            if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr) || redisService.hashExists(orderDealOidKey,orderIdStr)) {
+                continue;
+            }
             //开仓或平仓
             String offset = historyRow.getOffset();
+            //订单id相同的订单成交张数
+            int tradeVolume = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeVolume().intValue()).sum();
+            //成交额
+            int tradeTurnover = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToInt(h->h.getTradeTurnover().intValue()).sum();
+            //手续费
+            double tradeFee = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getTradeFee()).sum();
+            //订单id相同的订单真实收益
+            realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
             historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
             historyRow.setTradeVolume(BigDecimal.valueOf(tradeVolume));
-            direction = historyRow.getDirection();
+            historyRow.setTradeFee(tradeFee);
+            historyRow.setTradeTurnover(BigDecimal.valueOf(tradeTurnover));
             //订单信息json
             String historyRowJson = JSON.toJSONString(historyRow);
+            orderIdStrSet.add(orderIdStr);
             //如果是平仓单
             if ("close".equals(offset)) {
-                //hash值存在就跳过
-                if (redisService.hashExists(lossKey,orderIdStr) || redisService.hashExists(winKey,orderIdStr)) {
-                    continue;
-                }
+                direction = historyRow.getDirection();
                 //如果是止损的订单
                 if (realProfit < 0) {
                     //计算止损的张数
@@ -271,15 +288,12 @@ public class SwapDataService implements SwapServiceInter {
             }
             //如果是开仓单
             if ("open".equals(offset)) {
-                if (redisService.hashExists(orderDealOidKey,orderIdStr)) {
-                    continue;
-                }
                 redisService.hashSet(orderDealOidKey,orderIdStr,historyRowJson);
             }
         }
         //获取openVolume的长度
         Long openVolumeLen = redisService.getListLen(openVolumeKey + contractCode);
-        String logStr = "";
+        String logStr = contractCode+"--";
         //如果止损了
         if (lossFlag && lossVolume > 0 && "sell".equals(direction)) {
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
@@ -298,8 +312,11 @@ public class SwapDataService implements SwapServiceInter {
                 redisService.listTrim(openVolumeKey + contractCode,-2,-1);
                 logStr = "SWAP-止损回到开始的地方，止损张数：" + lossVolume;
             }
+            logStr += " 收益：" + realProfit;
             log.info(logStr);
             mailService.sendMail("SWAP-订单止损拆分",logStr,"");
+            //停用一会
+            cacheService.saveTimeFlag(contractCode);
         } else if(winVolume > 0 && "sell".equals(direction)){
             if (upStratgy == PubConst.UPSTRATGY.FBNQ) {
                 //如果止盈了并且倍投队列长度大于3回退两步,等于3回退一步
@@ -313,12 +330,13 @@ public class SwapDataService implements SwapServiceInter {
                 if (openVolumeLen + 1 >= PubConst.PLLNUM) {
                     //修剪列表 只留2个元素
                     redisService.listTrim(openVolumeKey + contractCode,-2,-1);
-                    logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume;
+                    logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume + " 收益：" + realProfit;
                 } else {
                     redisService.lpush(openVolumeKey + contractCode,String.valueOf(winVolume));
-                    logStr = "SWAP-止赢后进阶，止盈张数：" + winVolume;
+                    logStr = "SWAP-止赢后进阶，止盈张数：" + winVolume + " 收益：" + realProfit;
                 }
             }
+            logStr += " 收益：" + realProfit;
             log.info(logStr);
             mailService.sendMail("SWAP-订单止盈拆分",logStr,"");
         }

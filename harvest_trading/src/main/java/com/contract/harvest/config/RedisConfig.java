@@ -87,16 +87,13 @@ public class RedisConfig {
     @Bean
     public CacheManager huobiEntityRedisCacheManager(LettuceConnectionFactory factory) {
         RedisCacheConfiguration redisCacheConfiguration = RedisCacheConfiguration.defaultCacheConfig()
-                        .serializeKeysWith(RedisSerializationContext
-                        .SerializationPair
-                        .fromSerializer(new StringRedisSerializer()))
-                        .serializeValuesWith(RedisSerializationContext
-                        .SerializationPair
-                        .fromSerializer(new StringRedisSerializer()));
+                        .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                        .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()));
         // 缓存空间配置
         Map<String, RedisCacheConfiguration> configMap = new HashMap<>();
         configMap.put("HBCACHE:ENTITY", redisCacheConfiguration.entryTtl(Duration.ofMinutes(60)));
         configMap.put("HBCACHE:ENTITYREMIND", redisCacheConfiguration.entryTtl(Duration.ofMinutes(120)));
+        configMap.put("HBCACHE:TIMEFLAG", redisCacheConfiguration.entryTtl(Duration.ofHours(36)));
         return RedisCacheManager.builder(factory).initialCacheNames(configMap.keySet()).withInitialCacheConfigurations(configMap).build();
     }
 
