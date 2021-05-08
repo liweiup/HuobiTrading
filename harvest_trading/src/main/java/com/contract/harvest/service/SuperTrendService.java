@@ -52,7 +52,7 @@ public class SuperTrendService {
                 limitPercent = openInfo.getLimitPercent(),
                 stopPercent = openInfo.getStopPercent();
         int atrLen = openInfo.getAtrLen();
-        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX);
+        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX,0);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr

@@ -46,7 +46,7 @@ public class CaffeineConfig {
      */
     public enum Caches {
         //ca
-        kline(60, 5),
+        kline(300, 5),
         info(129600,5),
         role;
 

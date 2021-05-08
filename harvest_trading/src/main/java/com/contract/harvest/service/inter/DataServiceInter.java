@@ -13,7 +13,7 @@ public interface DataServiceInter {
      * @param channel 订阅的标识 如 BSV_CW
      * @param topicIndex k线周期
      */
-    List<Candlestick.DataBean> getKlineList(String channel, int topicIndex) throws InterruptedException;
+    List<Candlestick.DataBean> getKlineList(String channel, int topicIndex,int tryNum) throws InterruptedException;
     /**
      * 生成随机订单id
      * @return Long

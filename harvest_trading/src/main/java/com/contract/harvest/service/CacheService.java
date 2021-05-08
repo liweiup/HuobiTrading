@@ -72,9 +72,18 @@ public class CacheService {
     /**
      * 获取过往的k线
      */
-    @Cacheable(key = "'kline'.concat(#symbol+#topicIndex)",value = "kline",cacheManager = "caffeineCacheManger")
+    @Cacheable(key = "'kline'.concat(#symbol+#topicIndex)",value = "kline",cacheManager = "caffeineCacheManger",unless = "#result == null")
     public List<Candlestick.DataBean> getBeforeManyLine(String symbol, int topicIndex) {
-        return dataService.getBeforeManyLine(symbol,topicIndex);
+        List<Candlestick.DataBean> kline = dataService.getBeforeManyLine(symbol,topicIndex);
+        return kline;
+    }
+    /**
+     * k线写入
+     */
+    @CachePut(key = "'kline'.concat(#symbol+#topicIndex)",value = "kline",cacheManager = "caffeineCacheManger",unless = "#result == null")
+    public List<Candlestick.DataBean> setBeforeManyLine(String symbol, int topicIndex) {
+        List<Candlestick.DataBean> kline = dataService.getBeforeManyLine(symbol,topicIndex);
+        return kline;
     }
 
     @Cacheable(key = "#key",value = "HBCACHE:TIMEFLAG",cacheManager = "huobiEntityRedisCacheManager",unless = "#result.equals('0')")
