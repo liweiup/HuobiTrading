@@ -86,6 +86,8 @@ public class DeliveryDataService implements DeliveryServiceInter {
             price = Arith.sub(price,contractInfo.getPriceTick().doubleValue());
         }
         dealVolume = 0 == dealVolume ? PubConst.VOLUME : dealVolume;
+        //有几位小数
+        int decimals = String.valueOf(price).length() - (String.valueOf(price).indexOf(".") + 1);
         contractCode = contractInfo.getContractCode();
         ContractOrderRequest order =  ContractOrderRequest.builder()
                 .symbol(symbol)
@@ -102,13 +104,13 @@ public class DeliveryDataService implements DeliveryServiceInter {
         //多仓止盈损
         BigDecimal stopPrice = null,limitPrice = null;
         if (direction == DirectionEnum.BUY) {
-            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,stopPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
-            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,limitPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
+            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,stopPercent))).setScale(decimals,BigDecimal.ROUND_HALF_UP);
+            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,limitPercent))).setScale(decimals,BigDecimal.ROUND_HALF_UP);
         }
         //空仓止盈损
         if (direction == DirectionEnum.SELL) {
-            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,limitPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
-            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,stopPercent))).setScale(3,BigDecimal.ROUND_HALF_UP);
+            stopPrice = BigDecimal.valueOf(Arith.mul(price,Arith.add(1,limitPercent))).setScale(decimals,BigDecimal.ROUND_HALF_UP);
+            limitPrice = BigDecimal.valueOf(Arith.mul(price,Arith.sub(1,stopPercent))).setScale(decimals,BigDecimal.ROUND_HALF_UP);
         }
         //设置止盈 止损
         if (!Arith.compareEqualNum(stopPercent,0)) {
@@ -159,7 +161,6 @@ public class DeliveryDataService implements DeliveryServiceInter {
             if (null == orderInfo) {
                 continue;
             }
-            log.info("订单信息" + JSON.toJSONString(orderInfo) + "重试次数："+ i);
             //如果全部成交
             if (orderInfo.getStatus() == 6 || orderInfo.getStatus() == 7) {
                 redisService.hashSet(orderInfoKey,clientOrderId.toString(),JSON.toJSONString(orderInfo));
@@ -168,22 +169,23 @@ public class DeliveryDataService implements DeliveryServiceInter {
             Thread.sleep(3000L);
             i++;
         }
+        log.info("Deli-订单信息" + JSON.toJSONString(orderInfo) + "重试次数："+ i);
         int orderStatus = orderInfo.getStatus();
         int[] partSuccessArr = {4,5};
         if (orderStatus == 6) {
-            log.info("全部成交:"+orderInfo);
+            log.info("Deli-全部成交:"+orderInfo);
         } else if (Arrays.binarySearch(partSuccessArr,orderStatus) >= 0) {
             //撤单
             String contractCancel = huobiEntity.futureContractCancel(orderInfo.getOrderIdStr(),"",symbol);
-            log.info("部分成交:"+orderInfo+"撤单信息:"+contractCancel);
+            log.info("Deli-部分成交:"+orderInfo+"撤单信息:"+contractCancel);
         } else {
             //撤单
             String contractCancel = huobiEntity.futureContractCancel(orderInfo.getOrderIdStr(),"",symbol);
-            log.info("撤单:"+orderInfo+"撤单信息:"+contractCancel);
+            log.info("Deli-撤单:"+orderInfo+"撤单信息:"+contractCancel);
         }
         int tradeVolume = orderInfo.getTradeVolume().intValue();
         if (tradeVolume > 0) {
-            mailService.sendMail("成功下单-成交量"+tradeVolume,"订单信息:"+JSON.toJSONString(orderInfo),"");
+            mailService.sendMail("Deli-成功下单-成交量"+tradeVolume,"订单信息:"+JSON.toJSONString(orderInfo),"");
         }
     }
     /**
@@ -230,8 +232,9 @@ public class DeliveryDataService implements DeliveryServiceInter {
                 winKey = CacheService.ORDER_WIN + symbol,
                 contractType = PubConst.CONTRACT_TYPE.get(PubConst.DEFAULT_CS),
                 symbolFlag = symbol + PubConst.DEFAULT_CS;
+        historyData = historyData.stream().filter(h -> h.getContractType().equals(contractType)).collect(Collectors.toList());
         int winVolume = 0,lossVolume = 0;
-        double realProfit = 0;
+        double newestRealProfit = 0;
         //最新的订单是否止损了
         boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
                 onlyNewestLossFlag = true,
@@ -239,10 +242,6 @@ public class DeliveryDataService implements DeliveryServiceInter {
         String direction = "";
         Set<String> orderIdStrSet = new HashSet<>();
         for (ContractMatchresultsResponse.DataBean.TradesBean historyRow : historyData) {
-            //不是相同交易周期跳过
-            if (!historyRow.getContractType().equals(contractType)) {
-                continue;
-            }
             //订单id
             String orderIdStr = historyRow.getOrderIdStr().toString();
             //id相同跳过
@@ -260,7 +259,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
             //手续费
             double tradeFee = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getTradeFee()).sum();
             //订单id相同的订单真实收益
-            realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
+            double realProfit = historyData.stream().filter(h-> orderIdStr.equals(h.getOrderIdStr().toString())).mapToDouble(h->h.getRealProfit().doubleValue()).sum();
             //开仓或平仓
             String offset = historyRow.getOffset();
             historyRow.setRealProfit(BigDecimal.valueOf(realProfit));
@@ -270,6 +269,8 @@ public class DeliveryDataService implements DeliveryServiceInter {
             //订单信息json
             String historyRowJson = JSON.toJSONString(historyRow);
             orderIdStrSet.add(orderIdStr);
+            //计算收益
+            newestRealProfit += realProfit;
             //如果是平仓单
             if ("close".equals(offset)) {
                 direction = historyRow.getDirection();
@@ -321,7 +322,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
                 redisService.listTrim(openVolumeKey + symbol,-2,-1);
                 logStr = "止损回到开始的地方，止损张数：" + lossVolume;
             }
-            logStr += " 收益：" + realProfit;
+            logStr += " 收益：" + newestRealProfit;
             mailService.sendMail(symbol+"订单止损拆分",logStr,"");
             //停用一会
             cacheService.saveTimeFlag(symbolFlag);
@@ -346,7 +347,7 @@ public class DeliveryDataService implements DeliveryServiceInter {
                     logStr = "止赢后进阶，止盈张数：" + winVolume;
                 }
             }
-            logStr += " 收益：" + realProfit;
+            logStr += " 收益：" + newestRealProfit;
             log.info(logStr);
             mailService.sendMail("订单止盈拆分",logStr,"");
         }

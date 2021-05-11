@@ -87,6 +87,21 @@ public class HuoBiProWebSocketClient extends AbstractWebSocketClient {
 		this.addChannel(channel);
 	}
 
+	/**
+	 * 取消订阅主题
+	 */
+	public void unAddSub(String channel) {
+		if (!isAlive()) {
+			return;
+		}
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("unsub", channel);
+//		jsonObject.put("cid", subId);
+		String msg = jsonObject.toString();
+		this.sendMessage(msg);
+		this.removeChannel(channel);
+	}
+
 
 	/**
 	 * 添加交易对 集合

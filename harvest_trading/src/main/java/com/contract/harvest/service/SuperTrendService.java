@@ -51,8 +51,8 @@ public class SuperTrendService {
         double atrMultiplier = openInfo.getAtrMultiplier(),
                 limitPercent = openInfo.getLimitPercent(),
                 stopPercent = openInfo.getStopPercent();
-        int atrLen = openInfo.getAtrLen();
-        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,PubConst.TOPIC_INDEX,0);
+        int atrLen = openInfo.getAtrLen(),topicIndex = openInfo.getTopicIndex();
+        List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,topicIndex,0);
         //kline的列值
         CandlestickData tickColumnData = new CandlestickData(candlestickList);
         //计算atr
@@ -64,7 +64,7 @@ public class SuperTrendService {
         if (klineIdList.size() == 0) {
             return;
         }
-        int dateIndex = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX];
+        int dateIndex = PubConst.DATE_INDEX[topicIndex];
         //时间周期序列
         List<Long> dateList = TakeDate.getDateList(dateIndex);
         //做多条件
@@ -72,7 +72,7 @@ public class SuperTrendService {
         long lastDateId = dateList.get(dateList.size() - 1);
         long secondTimestamp = FormatParam.getSecondTimestamp();
         //k线秒数
-        int klineSecond = PubConst.DATE_INDEX[PubConst.TOPIC_INDEX] * 60;
+        int klineSecond = PubConst.DATE_INDEX[topicIndex] * 60;
         //这条k线等于当前时间最近的周期 或者 等于最近的时间减去一根k线的时间
         boolean tradingFlag = lastKlineId == lastDateId || lastDateId - lastKlineId == klineSecond;
         //信号k线结束的前10秒,后80秒之内交易
@@ -109,7 +109,7 @@ public class SuperTrendService {
             //加锁
             mapFlag.put(symbol,1);
         }
-        cacheService.inform("trading-"+symbolFlag,"...............正在运行...............");
+        cacheService.inform("DELI-trading-"+symbolFlag,"...............正在运行...............");
     }
     /**
      * 处理订单

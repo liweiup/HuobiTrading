@@ -14,4 +14,6 @@ public class CacheKey {
 
     //订阅数据
     public static final String HUOBI_SUB = "HB:SUB_DATA";
+    //开仓参数
+    public static final String HUOBI_OPEN_INFO = "HB:OPEN_INFO";
 }

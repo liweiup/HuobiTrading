@@ -1,5 +1,7 @@
 package com.contract.harvest.service;
 
+import com.alibaba.fastjson.JSON;
+import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.common.PubConst;
 import com.huobi.api.exception.ApiException;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
@@ -10,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.*;
 
@@ -44,7 +47,23 @@ public class ScheduledService {
         String symbolKey = type == 1 ? CacheService.SWAP_SYMBLO_FLAG : CacheService.SYMBLO_FLAG;
         return redisService.getSetMembers(symbolKey);
     }
-
+    /**
+     * 设置开仓参数
+     */
+    @PostConstruct
+    public void setSymbolOpenInfo() {
+        HashMap<String,OpenInfo> openInfoList = new HashMap<String,OpenInfo>(){{
+            put("BSV_NW",new OpenInfo("BSV_NW",0.06,0.03,7,14,1));
+            put("BSV-USDT",new OpenInfo("BSV-USDT",0.06,0.03,6,14,1));
+            put("BCH-USDT",new OpenInfo("BCH-USDT",0.06,0.03,6,14,1));
+            put("DOGE-USDT",new OpenInfo("DOGE-USDT",0,0,6,14,3));
+        }};
+        for (String key : openInfoList.keySet()) {
+            if (!redisService.hashExists(CacheService.HUOBI_OPEN_INFO,key)) {
+                redisService.hashSet(CacheService.HUOBI_OPEN_INFO,key, JSON.toJSONString(openInfoList.get(key)));
+            }
+        }
+    }
     @Scheduled(cron = "0/2 * * * * ?")  //每2秒执行一次
     public void invokeBi() {
         //交割合约

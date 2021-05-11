@@ -46,5 +46,5 @@ logging:
       contract:
         harvest: info
 huobi:
-  api_key: bgbfh5tv3f-d7c5bda4-9309c2a4-cd5be
-  secret_key: 6e53c558-49706cc2-da42cc01-7809b
+  api_key: ghxertfvbf-5e9a8e8a-677d8036-56da3
+  secret_key: 40f6ad9d-3793f4d9-a6cb515a-13530

@@ -29,8 +29,9 @@ public class ScheduledService {
         return redisService.getSetMembers(CacheKey.SWAP_SYMBLO_FLAG);
     }
 
-    @Scheduled(cron = "0 0/30 * * * ?")  //每30分钟检查一次订阅
+    @Scheduled(cron = "0 0/3 * * * ?")  //每3分钟检查一次订阅
     public void invokeChaseSubCash() {
         intertemporalDeal.cashClientAddSub();
+        intertemporalDeal.swapClientAddSub();
     }
 }

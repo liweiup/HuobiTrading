@@ -255,7 +255,7 @@ public class IndexCalculation {
         }
         if (retCode == RetCode.Success) {
             for (int i = 0; i < outReal.length; i++) {
-                outReal[i] = FormatParam.getScaleNum(outReal[i],2);
+                outReal[i] = FormatParam.getScaleNum(outReal[i],4);
             }
             return Arrays.copyOf(outReal, outReal.length - lookback);
         }
@@ -520,12 +520,17 @@ public class IndexCalculation {
 
             trend[i] = i == 0 ? 1 : trend[i-1];
             trend[i] = (trend[i] == -1) && _close[i] > dn_pre ? 1 : (trend[i] == 1) && (_close[i] < up_pre) ? -1 : trend[i];
-            if (i != 0 && trend[i] == 1 && trend[i-1] == -1) {
+            if ((i != 0 && trend[i] == 1 && trend[i-1] == -1) && bf == 1) {
+//                System.out.println(FormatParam.stampToDate(_id[i]));
+                klineIdList.add(_id[i]);
+            }
+            if ((i != 0 && trend[i] == -1 && trend[i-1] == 1) && bf == -1) {
 //                System.out.println(FormatParam.stampToDate(_id[i]));
                 klineIdList.add(_id[i]);
             }
         }
 //        System.out.println("===================");
+//        System.out.println("结束");
         return klineIdList;
     }
 }

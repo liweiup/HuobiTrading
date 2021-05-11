@@ -58,10 +58,10 @@ public class DataService implements DataServiceInter {
         }
         Candlestick.DataBean tick = JSON.parseObject(lineData,Candlestick.class).getTick();
         //过往的x条k线
-        List<Candlestick.DataBean> tickList = cacheService.getBeforeManyLine(channel,PubConst.TOPIC_INDEX);
+        List<Candlestick.DataBean> tickList = cacheService.getBeforeManyLine(channel,topicIndex);
         if (tick.getId().equals(tickList.get(tickList.size()-1).getId())) {
             tickList.set(tickList.size()-1,tick);
-        } else if (tick.getId() - 300 == tickList.get(tickList.size()-1).getId()) {
+        } else if (tick.getId() - 60 * PubConst.DATE_INDEX[topicIndex] == tickList.get(tickList.size()-1).getId()) {
             tickList.add(tick);
         } else {
             scheduledService.indexCalculation();
@@ -123,18 +123,23 @@ public class DataService implements DataServiceInter {
      */
     @Override
     public void saveIndexCalculation(int topicIndex) throws ApiException {
-        topicIndex = topicIndex == 0 ? PubConst.TOPIC_INDEX : topicIndex;
         //交割合约
         for (String symbol : scheduledService.getSymbol(0)) {
             String symbolFlag = symbol + PubConst.DEFAULT_CS;
+            //开仓参数
+            OpenInfo openInfo = getOpenInfo(symbolFlag);
+            topicIndex = openInfo.getTopicIndex();
             String strData = huobiEntity.getMarketHistoryKline(symbolFlag,Topic.PERIOD[topicIndex],PubConst.GET_KLINE_NUM);
-            redisService.hashSet(CacheService.HUOBI_KLINE,symbolFlag + Topic.PERIOD[topicIndex],strData);
+            redisService.hashSet(CacheService.HUOBI_KLINE,symbolFlag + Topic.PERIOD[openInfo.getTopicIndex()],strData);
             cacheService.setBeforeManyLine(symbolFlag,topicIndex);
         }
         //永续合约
         for (String symbol : scheduledService.getSymbol(1)) {
-            String swapStrData = huobiSwapEntity.getSwapMarketHistoryKline(symbol+PubConst.SWAP_USDT,Topic.PERIOD[PubConst.TOPIC_INDEX],PubConst.GET_KLINE_NUM);
-            redisService.hashSet(CacheService.HUOBI_KLINE,symbol + PubConst.SWAP_USDT + Topic.PERIOD[PubConst.TOPIC_INDEX],swapStrData);
+            String symbolFlag = symbol+PubConst.SWAP_USDT;
+            OpenInfo openInfo = getOpenInfo(symbolFlag);
+            topicIndex = openInfo.getTopicIndex();
+            String swapStrData = huobiSwapEntity.getSwapMarketHistoryKline(symbolFlag,Topic.PERIOD[topicIndex],PubConst.GET_KLINE_NUM);
+            redisService.hashSet(CacheService.HUOBI_KLINE,symbolFlag + Topic.PERIOD[topicIndex],swapStrData);
             cacheService.setBeforeManyLine(symbol+PubConst.SWAP_USDT,topicIndex);
         }
     }
