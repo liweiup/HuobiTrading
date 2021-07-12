@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 @Slf4j
 @PropertySource(value = {"classpath:exchange.properties"})
@@ -76,7 +77,9 @@ public class IntertemporalDeal {
             SYMBOL_SET_CHANNEL.add(symbol);
         }
         //取消订阅
-        for (String unSymbol : SYMBOL_SET_CHANNEL) {
+        Iterator<String> channelIterator = SYMBOL_SET_CHANNEL.iterator();
+        while (channelIterator.hasNext()) {
+            String unSymbol = channelIterator.next();
             OpenInfo openInfo = dataService.getOpenInfo(unSymbol + PubConst.DEFAULT_CS);
             String klineSub = Topic.formatChannel(Topic.KLINE_SUB,unSymbol + PubConst.DEFAULT_CS,openInfo.getTopicIndex());
             String depthSub = Topic.formatChannel(Topic.DEPTH_SUB,unSymbol + PubConst.DEFAULT_CS,PubConst.DEPTH_SUB_INDEX);
@@ -84,6 +87,7 @@ public class IntertemporalDeal {
                 log.info("取消订阅" + unSymbol);
                 swapClient.unAddSub(klineSub);
                 swapClient.unAddSub(depthSub);
+                channelIterator.remove();
             }
         }
     }
@@ -101,8 +105,9 @@ public class IntertemporalDeal {
             }
             SWAP_SYMBOL_SET_CHANNEL.add(symbol);
         }
-        //取消订阅
-        for (String unSymbol : SWAP_SYMBOL_SET_CHANNEL) {
+        Iterator<String> channelIterator = SWAP_SYMBOL_SET_CHANNEL.iterator();
+        while (channelIterator.hasNext()) {
+            String unSymbol = channelIterator.next();
             OpenInfo openInfo = dataService.getOpenInfo(unSymbol + "-USDT");
             String klineSub = Topic.formatChannel(Topic.KLINE_SUB,unSymbol + "-USDT",openInfo.getTopicIndex());
             String depthSub = Topic.formatChannel(Topic.DEPTH_SUB,unSymbol + "-USDT",PubConst.DEPTH_SUB_INDEX);
@@ -110,6 +115,7 @@ public class IntertemporalDeal {
                 log.info("取消订阅" + unSymbol);
                 swapClient.unAddSub(klineSub);
                 swapClient.unAddSub(depthSub);
+                channelIterator.remove();
             }
         }
     }

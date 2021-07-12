@@ -63,8 +63,7 @@ public class SwapDataService implements SwapServiceInter {
     public int getDealOpenVol(double price,double contractSize,long dealVolume) {
         long usdtNum = dealVolume * 10;
         double openVol = Arith.div(usdtNum,Arith.mul(price,contractSize));
-        return 1;
-//        return (int) Math.round(openVol);
+        return (int) Math.round(openVol);
     }
 
     /**
@@ -87,8 +86,6 @@ public class SwapDataService implements SwapServiceInter {
             price = Arith.sub(price,contractInfo.getPriceTick().doubleValue());
         }
         dealVolume = 0 == dealVolume ? PubConst.VOLUME : dealVolume;
-        //获取可开仓的张数
-        dealVolume = getDealOpenVol(price,contractInfo.getContractSize().doubleValue(),dealVolume);
         //有几位小数
         int decimals = String.valueOf(price).length() - (String.valueOf(price).indexOf(".") + 1);
         contractCode = contractInfo.getContractCode();
@@ -210,6 +207,7 @@ public class SwapDataService implements SwapServiceInter {
      */
     @Override
     public int getMaxOpenVolume(String contractCode) {
+        SwapContractInfoResponse.DataBean contractInfo = getContractInfo(contractCode);
         //获取最新的开仓张数
         String firstVolume = redisService.getListByIndex(CacheService.SWAP_OPEN_VOLUME + contractCode,Long.parseLong("0"));
         String secondVolume = redisService.getListByIndex(CacheService.SWAP_OPEN_VOLUME + contractCode,Long.parseLong("1"));
@@ -349,7 +347,8 @@ public class SwapDataService implements SwapServiceInter {
                     redisService.listTrim(openVolumeKey + contractCode,-2,-1);
                     logStr = "SWAP-止赢回到开始的地方，止赢张数：" + winVolume;
                 } else {
-                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(winVolume));
+                    //获取开仓的数量
+                    redisService.lpush(openVolumeKey + contractCode,String.valueOf(getMaxOpenVolume(contractCode)));
                     logStr = "SWAP-止赢后进阶，止盈张数：" + winVolume;
                 }
             }

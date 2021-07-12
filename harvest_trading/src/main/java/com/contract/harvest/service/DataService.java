@@ -145,6 +145,16 @@ public class DataService implements DataServiceInter {
     }
 
     /**
+     * 获取止损点
+     */
+    public double getStopPercent(String symbol,double percent,String type) {
+        String key = "DELI".equals(type) ? CacheService.OPEN_VOLUME : CacheService.SWAP_OPEN_VOLUME;
+        int len = redisService.getListLen(key + symbol).intValue();
+        percent = len == 4 ? percent - 0.04 : percent;
+        return percent;
+    }
+
+    /**
      * 判断Atr转向
      */
     public int judgeTrendVeer(String symbol,int topicIndex,int atrMultiplier) {

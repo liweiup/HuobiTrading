@@ -51,6 +51,7 @@ public class SuperTrendService {
         double atrMultiplier = openInfo.getAtrMultiplier(),
                 limitPercent = openInfo.getLimitPercent(),
                 stopPercent = openInfo.getStopPercent();
+        stopPercent = dataService.getStopPercent(symbol,stopPercent,"DELI");
         int atrLen = openInfo.getAtrLen(),topicIndex = openInfo.getTopicIndex();
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbolFlag,topicIndex,0);
         //kline的列值
@@ -94,7 +95,7 @@ public class SuperTrendService {
         int maxVolume = deliveryDataService.getMaxOpenVolume(symbol);
         //可开仓量
         int openVolume = maxVolume - volume;
-        boolean volumeFlag = volume < maxVolume;
+        boolean volumeFlag = volume < maxVolume && openVolume > 5;
         //信号确认
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         DirectionEnum direction = DirectionEnum.BUY;

@@ -29,7 +29,7 @@ public class TaskService  {
     public void execInvokeBi(Map<String,String> params) {
         taskExecutor.execute(() -> {
             int quePoolNum = taskExecutor.getThreadPoolExecutor().getQueue().size();
-            if (quePoolNum > 1) {
+            if (quePoolNum > 4) {
                 logger.info("线程等待：线程池中线程数目："+taskExecutor.getThreadPoolExecutor().getPoolSize()+"，队列中等待执行的任务数目："+
                 taskExecutor.getThreadPoolExecutor().getQueue().size()+"，已执行玩别的任务数目："+taskExecutor.getThreadPoolExecutor().getCompletedTaskCount());
                 return;

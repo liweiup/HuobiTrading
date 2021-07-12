@@ -235,6 +235,9 @@ public class DeliveryDataService implements DeliveryServiceInter {
         historyData = historyData.stream().filter(h -> h.getContractType().equals(contractType)).collect(Collectors.toList());
         int winVolume = 0,lossVolume = 0;
         double newestRealProfit = 0;
+        if (historyData.size() == 0) {
+            return;
+        }
         //最新的订单是否止损了
         boolean lossFlag = historyData.get(0).getRealProfit().doubleValue() < 0,
                 onlyNewestLossFlag = true,

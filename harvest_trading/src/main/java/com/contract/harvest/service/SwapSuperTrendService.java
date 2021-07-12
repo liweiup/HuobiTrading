@@ -11,6 +11,7 @@ import com.huobiswap.api.enums.OffsetEnum;
 import com.huobiswap.api.exception.ApiException;
 import com.huobiswap.api.request.trade.SwapOrderRequest;
 import com.huobiswap.api.response.account.SwapPositionInfoResponse;
+import com.huobiswap.api.response.market.SwapContractInfoResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -51,6 +52,7 @@ public class SwapSuperTrendService {
         double atrMultiplier = openInfo.getAtrMultiplier(),
                 limitPercent = openInfo.getLimitPercent(),
                 stopPercent = openInfo.getStopPercent();
+        stopPercent = dataService.getStopPercent(symbol,stopPercent,"SWAP");
         int atrLen = openInfo.getAtrLen(),topicIndex = openInfo.getTopicIndex();
         List<Candlestick.DataBean> candlestickList = dataService.getKlineList(symbol,topicIndex,0);
         //kline的列值
@@ -78,7 +80,7 @@ public class SwapSuperTrendService {
         //如果最后一根k线可以做空 && 这条k线等于当前时间最近的周期
         boolean tradingFlag = lastKlineId == lastDateId  || lastDateId - lastKlineId == klineSecond;
         //获取休息状态
-        boolean timeFlag = "0".equals(cacheService.getTimeFlag(symbol));
+        boolean timeFlag = "0".equals(cacheService.getTimeFlag(symbol)) || bf == -1;
         //信号k线结束的前10秒,后80秒之内交易
         long flagTimeNum = klineSecond + lastKlineId - secondTimestamp;
         boolean klineTimeFlag = (flagTimeNum > 0 && flagTimeNum < PubConst.PRE_SECOND) || (flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LATER_SECOND);
@@ -93,13 +95,16 @@ public class SwapSuperTrendService {
         boolean prieKlineTimeFlag = flagTimeNum < 0 && Math.abs(flagTimeNum) < PubConst.LAST_SECOND;
         //最大持仓
         int maxVolume = swapDataService.getMaxOpenVolume(symbol);
+        SwapContractInfoResponse.DataBean contractInfo = swapDataService.getContractInfo(symbol);
+        maxVolume = swapDataService.getDealOpenVol(candlestickLastRow.getClose().doubleValue(),contractInfo.getContractSize().doubleValue(),maxVolume);
         //可开仓量
         int openVolume = maxVolume - volume;
-        boolean volumeFlag = volume < maxVolume;
+        //可开仓量
+        boolean volumeFlag = (volume < maxVolume  && openVolume > 5) || bf == -1;
         //信号确认
         boolean affirmTradingFlag = (tradingFlag && klineTimeFlag) || (priceSignalFlag && prieKlineTimeFlag);
         //开多仓
-        boolean dealTradingFlag = affirmTradingFlag && volumeFlag && (timeFlag || bf == -1);
+        boolean dealTradingFlag = affirmTradingFlag && volumeFlag && timeFlag;
         //交易
         if (dealTradingFlag) {
             SwapOrderRequest order = null;
@@ -114,7 +119,7 @@ public class SwapSuperTrendService {
                 order = swapDataService.getPlanOrder(symbol, OffsetEnum.CLOSE, DirectionEnum.SELL,volume,0,0);
             }
             redisService.lpush(CacheService.SWAP_WAIT_ORDER_QUEUE + symbol, JSON.toJSONString(order));
-//            //订阅通知
+            //订阅通知
             redisService.convertAndSend("order_queue","swapHadleQueueOrder:" + symbol);
             //加锁
             mapFlag.put(symbol,1);
@@ -149,7 +154,7 @@ public class SwapSuperTrendService {
         redisService.addSet(CacheService.SWAP_ORDER_DEAL_CLIENTID + symbol,order.getClientOrderId().toString());
         //释放锁
         mapFlag.put(symbol,0);
-        log.info("...............SWAP-订单处理结束...释放锁...............");
+        log.info("...............SWAP-"+symbol+"订单处理结束...释放锁...............");
     }
 
 }
