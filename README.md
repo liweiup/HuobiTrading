@@ -24,9 +24,9 @@ huobi:
 
 **云服务器配置内存不建议低于1g 最好香港的**
 
-需要分开打包。
-harvest_data 负责订阅实时数据
-harvest_trading 负责交易
+需要分开打包两个项目
+harvest_data 数据
+harvest_trading 交易
 
 ![image](https://user-images.githubusercontent.com/20676490/154517835-58628cb0-c206-4535-bc6a-c0789e8dfd8e.png)
 
