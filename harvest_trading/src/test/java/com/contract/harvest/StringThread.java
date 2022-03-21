@@ -18,10 +18,11 @@ public class StringThread implements Runnable {
 
         String lock = buildLock();
         synchronized (lock) {
-            System.out.println("[" + JdkUtil.getThreadName() + "]开始运行了");
+            System.out.println("[" + lock + "]开始运行了");
+//            System.out.println("[" + JdkUtil.getThreadName() + "]开始运行了");
             // 休眠5秒模拟脚本调用
 //            JdkUtil.sleep(5000);
-            System.out.println("[" + JdkUtil.getThreadName() + "]结束运行了");
+            System.out.println("[" + lock + "]结束运行了");
         }
     }
 
@@ -31,7 +32,7 @@ public class StringThread implements Runnable {
         sb.append(ip);
 
         String lock = sb.toString().intern();
-        System.out.println("[" + JdkUtil.getThreadName() + "]构建了锁[" + lock + "]");
+        System.out.println("[" + lock + "]构建了锁[" + lock + "]");
 
         return lock;
     }

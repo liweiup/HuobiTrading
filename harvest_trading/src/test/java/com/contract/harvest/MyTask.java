@@ -1,26 +1,38 @@
 package com.contract.harvest;
 
-class MyTask implements Runnable {
-    private int taskNum;
+import lombok.SneakyThrows;
 
+class MyTask implements Runnable {
+    private static int taskNum;
     public MyTask(int num) {
-        this.taskNum = num;
+        System.out.println(num);
+       taskNum = num;
     }
 
     @Override
     public void run() {
-        System.out.println("正在执行task "+taskNum);
-        try {
-            if (taskNum % 5 == 0) {
-                throw new Exception("111");
+            System.out.println("正在执行task " + Thread.currentThread().getName());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                System.out.println("task "+Thread.currentThread().getName() +taskNum+"执行异常");
+                e.printStackTrace();
             }
-            Thread.currentThread().sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.out.println("task "+taskNum+"执行异常");
-            e.printStackTrace();
-        }
-        System.out.println("task "+taskNum+"执行完毕");
+                System.out.println("task "+Thread.currentThread().getName()+taskNum+"执行完毕");
     }
+//    public synchronized void run() {
+//        System.out.println("正在执行task " + Thread.currentThread().getName() + taskNum);
+//        try {
+//
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        } catch (Exception e) {
+//            System.out.println("task "+Thread.currentThread().getName() +taskNum+"执行异常");
+//            e.printStackTrace();
+//        }
+//        System.out.println("task "+Thread.currentThread().getName()+taskNum+"执行完毕");
+//    }
 }

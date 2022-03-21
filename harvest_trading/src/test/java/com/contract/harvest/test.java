@@ -1,6 +1,7 @@
 package com.contract.harvest;
 
 
+import com.contract.harvest.common.PubConst;
 import com.contract.harvest.entity.HuobiEntity;
 import com.contract.harvest.service.*;
 import org.junit.Test;
@@ -32,10 +33,14 @@ import javax.annotation.Resource;
 public class test {
     @Autowired
     private SuperTrendService superTrendService;
-
-
+    @Autowired
+    private SwapSuperTrendService swapSuperTrendService;
+    @Autowired
+    private DataService dataService;
     @Autowired
     private ScheduledService scheduledService;
+    @Autowired
+    private CacheService cacheService;
     @Autowired
     private HuobiEntity huobiEntity;
     @Autowired
@@ -44,19 +49,30 @@ public class test {
     private MailService mailService;
     @Resource
     private DeliveryDataService deliveryDataService;
+    @Resource
+    private SwapDataService swapDataService;
 
     @Test
     public void TestLoadingCache() throws Exception{
 //        Map<String,String> params = new HashMap<>();
 //        chaseStrategy.dealIndexV2("BSV");
-//        scheduledService.indexCalculation();
+        scheduledService.indexCalculation();
 //        superTrendService.trading("BSV");
-//        superTrendService.hadleQueueOrder("BSV");
+//        swapSuperTrendService.trading("BCH-USDT");
+//        swapSuperTrendService.hadleQueueOrder("DOGE-USDT");
+//        swapSuperTrendService.trading("BCH-USDT");
+//        System.out.println(cacheService.getBeforeManyLine("BSV_NW",1));
+//        Thread.sleep(10000L);
+//        dataService.saveIndexCalculation(1);
+//        System.out.println(cacheService.getBeforeManyLine("BSV_NW",1));
 //            deliveryDataService.getContractPositionInfo("BSV");
 //        mailService.sendMail("成功下单-成交量","订单信息:","");
 //        System.out.println(huobiEntity.getContractPositionInfo("BSV"));
-//        scheduledService.contractLossWinOrder();
-        redisService.hashScan("HB:DELIVERY:CONTRACT:ORDER_LOSS:BSV",1);
+//        deliveryDataService.contractLossWinOrder("BSV", PubConst.UPSTRATGY.PLL);
+//        System.out.println(dataService.getStopPercent("BSV",0.08,"DELI"));
+//        swapDataService.contractLossWinOrder("BCH-USDT", PubConst.UPSTRATGY.PLL);
+//        scheduledService.getContractVolume();
+//        System.out.println(cacheService.getTimeFlag("BSV_NW"));
     }
 
     @Test

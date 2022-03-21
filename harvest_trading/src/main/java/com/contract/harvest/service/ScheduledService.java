@@ -1,8 +1,10 @@
 package com.contract.harvest.service;
 
 import com.alibaba.fastjson.JSON;
+import com.contract.harvest.common.Depth;
 import com.contract.harvest.common.OpenInfo;
 import com.contract.harvest.common.PubConst;
+import com.contract.harvest.common.Topic;
 import com.huobi.api.exception.ApiException;
 import com.huobi.api.response.account.ContractPositionInfoResponse;
 import com.huobiswap.api.response.account.SwapPositionInfoResponse;
@@ -139,5 +141,12 @@ public class ScheduledService {
             log.error("拆分订单异常"+e.getMessage());
         }
     }
+//    @Scheduled(cron = "0/2 * * * * ?")  //每15分钟执行一次
+    public void getContractVolume() throws InterruptedException {
 
+        String depthSubKey = Topic.formatChannel(Topic.DEPTH_SUB,"BSV_NW",PubConst.DEPTH_SUB_INDEX);
+        Depth.TickBean depth = dataService.getBidAskPrice(depthSubKey).getTick();
+        System.out.println(depth);
+//        redisService.hashGet(CacheService.HUOBI_SUB,"MARKET.BSV_NW.DEPTH.STEP6");
+    }
 }
