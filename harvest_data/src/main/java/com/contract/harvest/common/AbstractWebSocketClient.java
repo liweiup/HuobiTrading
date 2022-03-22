@@ -98,7 +98,7 @@ public abstract class AbstractWebSocketClient {
                         pipeline.addLast(sslCtx.newHandler(ch.alloc(), host, port));
                     }
                     //pipeline可以同时放入多个handler,最后一个为自定义hanler
-//                    pipeline.addFirst(new HttpProxyHandler(new InetSocketAddress("127.0.0.1", 9999)));
+                    pipeline.addFirst(new HttpProxyHandler(new InetSocketAddress("127.0.0.1", 9997)));
                     pipeline.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192), handler);
                 }
             });

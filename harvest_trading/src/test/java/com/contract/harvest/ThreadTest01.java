@@ -59,7 +59,7 @@ class SyncThread implements Runnable {
         count = 1;
     }
     public  void run() {
-        synchronized (this){
+            synchronized (this){
             for (int i = 1; i <= 10; i++) {
                 try {
                     System.out.println("线程名:"+Thread.currentThread().getName() + ":" + (count++));

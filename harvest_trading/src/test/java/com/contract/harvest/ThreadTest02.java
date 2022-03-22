@@ -24,7 +24,9 @@ class ThreadTest {
         executor.prestartAllCoreThreads(); // 预启动所有核心线程
         for (int i = 1; i <= 10; i++) {
             MyTask task = new MyTask(String.valueOf(i));
-            executor.execute(task);
+            synchronized(task) {
+                executor.execute(task);
+            }
         }
         System.in.read(); //阻塞主线程
     }

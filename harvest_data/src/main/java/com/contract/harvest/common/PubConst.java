@@ -10,7 +10,7 @@ public class PubConst {
     //20:表示20档不合并的深度，150:表示150档不合并的深度
     public static final int DEPET_HIGH_FREQ_INDEX = 150;
     //默认的交易周期
-    public static final String DEFAULT_CS = "_NW";
+    public static final String DEFAULT_CS = "_CQ";
     //获取的k线数量
     public static final String GET_KLINE_NUM = "800";
     //标识
